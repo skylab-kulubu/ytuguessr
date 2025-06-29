@@ -19,8 +19,12 @@ def haversine(lat1, lon1, lat2, lon2):
 def create_jwt(email):
     return jwt.encode({"email": email, "timestamp": time.time()}, settings.JWT_SECRET, algorithm="HS256")
 
-def decode_jwt(token, db):
+def decode_jwt(request, db):
     try:
+        token = request.cookies.get("session")
+        if not token:
+            raise HTTPException(status_code=401, detail="Token eksik.")
+    
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
         email = payload.get("email")
 
