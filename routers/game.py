@@ -105,3 +105,53 @@ def get_next_location(request: Request, db: Session = Depends(get_db)):
         db.commit()
 
     return {"image_url": location.image_url}
+
+@router.get("/leaderboard")
+def get_leaderboard(page: int = 1, db: Session = Depends(get_db)):
+    page_size = settings.LEADERBOARD_PAGE_SIZE
+    offset = (page - 1) * page_size
+
+    total_users = db.query(User).filter(User.completed == True).count()
+    users = (
+        db.query(User)
+        .filter(User.completed == True)
+        .order_by(User.score.desc())
+        .offset(offset)
+        .limit(page_size)
+        .all()
+    )
+
+    def is_number_username(email: str):
+        username = email.split("@")[0]
+        return bool(re.fullmatch(r"[a-zA-Z]?\d+", username))
+
+    def format_name(email: str, show: bool):
+        username = email.split("@")[0]
+        if is_number_username(email):
+            return username if show else username[:2] + "*" * (len(username) - 2)
+        cleaned = re.sub(r"[^a-zA-Z.]", "", username)
+        parts = [p for p in cleaned.split(".") if p]
+        if not parts:
+            return "ANONIM"
+        if show:
+            return " ".join(part.upper() for part in parts)
+        else:
+            return " ".join(
+                part.upper() if len(part) <= 2 else part[:2].upper() + "*" * (len(part) - 2)
+                for part in parts
+            )
+
+    leaderboard = [
+        {
+            "name": format_name(user.email, user.show_name),
+            "score": user.score,
+        }
+        for user in users
+    ]
+
+    return {
+        "page": page,
+        "total_pages": (total_users + page_size - 1) // page_size,
+        "total_users": total_users,
+        "leaderboard": leaderboard,
+    }
