@@ -88,3 +88,19 @@ def make_guess(data: GuessRequest, request: Request, db: Session = Depends(get_d
         "time_sec": duration,
         "question_number": total_answered
     }
+
+@router.post("/next")
+def get_next_location(request: Request, db: Session = Depends(get_db)):
+    user = decode_jwt(request, db)
+
+    guess = db.query(Guess).filter_by(user_id=user.id, distance=None).first()
+    if not guess:
+        return {"message": "Tüm konumlar işaretlendi."}
+    
+    location = db.query(Location).filter_by(id=guess.location_id).first()
+
+    if guess.started_at is None:
+        guess.started_at = datetime.now(timezone.utc).timestamp()
+        db.commit()
+
+    return {"image_url": location.image_url}
