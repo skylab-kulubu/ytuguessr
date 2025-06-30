@@ -65,10 +65,11 @@ def make_guess(data: GuessRequest, request: Request, db: Session = Depends(get_d
     
     distance = haversine(data.latitude, data.longitude, location.lat, location.lng)
     duration = now - guess.started_at
-    score = calculate_score(distance, duration)
-    if duration > settings.QUESTION_DURATION:
-        score = 0
 
+    score = 0
+    if duration <= settings.QUESTION_DURATION:
+        score = calculate_score(distance, duration)
+        
     guess.guessed_lat = data.latitude
     guess.guessed_lng = data.longitude
     guess.distance = distance
