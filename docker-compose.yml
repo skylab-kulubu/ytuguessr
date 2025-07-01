@@ -1,7 +1,8 @@
 version: "3.8"
 
 services:
-  db:
+  guessrdb:
+    container_name: guessrdb
     image: postgres:15
     restart: always
     environment:
@@ -13,11 +14,12 @@ services:
     ports:
       - "${POSTGRES_PORT}:5432"
 
-  backend:
+  guessrbackend:
+    container_name: guessrbackend
     build: .
     restart: always
     depends_on:
-      - db
+      - guessrdb
     env_file:
       - .env
     ports:
