@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
-from schemas.schemas import StartGameRequest, GuessRequest
+from schemas.game import StartGameRequest, GuessRequest
 from core.database import SessionLocal
 from core.config import settings
 from models.models import User, Guess, Location
