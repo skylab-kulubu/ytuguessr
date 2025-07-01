@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import JSONResponse
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from schemas.schemas import StartGameRequest, GuessRequest
@@ -23,9 +24,6 @@ def get_db():
 def start_game(data: StartGameRequest, request: Request, db: Session = Depends(get_db)):
     if not re.fullmatch(r".+@(std\.)?yildiz\.edu\.tr", data.school_mail.lower()):
         raise HTTPException(status_code=400, detail="Sadece yildiz.edu.tr uzantılı mailler kabul edilir.")
-
-    if db.query(User).filter_by(email=data.school_mail.lower()).first():
-        raise HTTPException(status_code=400, detail="Bu mail ile zaten oynandı.")
     
     user = User(
         email=data.school_mail.lower(),
@@ -40,7 +38,7 @@ def start_game(data: StartGameRequest, request: Request, db: Session = Depends(g
         db.add(Guess(user_id=user.id, location_id=loc.id))
     db.commit()
 
-    token = create_jwt(user.email)
+    token = create_jwt(user.id)
 
     response = JSONResponse(content={"message": "Oyun başlatıldı."})
     response.set_cookie(
@@ -120,15 +118,29 @@ def get_leaderboard(request: Request, page: int = 1, db: Session = Depends(get_d
     page_size = settings.LEADERBOARD_PAGE_SIZE
     offset = (page - 1) * page_size
 
-    total_users = db.query(User).filter(User.completed == True).count()
+    subquery = (
+        db.query(
+            User.email,
+            func.max(User.score).label("max_score")
+        )
+        .filter(User.completed == True)
+        .group_by(User.email)
+        .subquery()
+    )
+
     users = (
         db.query(User)
-        .filter(User.completed == True)
+        .join(
+            subquery,
+            (User.email == subquery.c.email) & (User.score == subquery.c.max_score)
+        )
         .order_by(User.score.desc())
         .offset(offset)
         .limit(page_size)
         .all()
     )
+
+    total_users = db.query(User.email).filter(User.completed == True).distinct().count()
 
     def is_number_username(email: str):
         username = email.split("@")[0]
@@ -154,7 +166,7 @@ def get_leaderboard(request: Request, page: int = 1, db: Session = Depends(get_d
         {
             "name": format_name(user.email, user.show_name),
             "score": user.score,
-            "is_me": current_user is not None and user.id == current_user.id
+            "is_me": current_user is not None and user.email == current_user.email
         }
         for user in users
     ]

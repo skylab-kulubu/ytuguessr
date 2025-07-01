@@ -16,8 +16,8 @@ def haversine(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
 
-def create_jwt(email):
-    return jwt.encode({"email": email, "timestamp": time.time()}, settings.JWT_SECRET, algorithm="HS256")
+def create_jwt(user_id):
+    return jwt.encode({"id": user_id, "timestamp": time.time()}, settings.JWT_SECRET, algorithm="HS256")
 
 def decode_jwt(request, db):
     try:
@@ -26,12 +26,12 @@ def decode_jwt(request, db):
             raise HTTPException(status_code=401, detail="Token eksik.")
     
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
-        email = payload.get("email")
+        user_id = payload.get("id")
 
-        if not email:
-            raise HTTPException(status_code=401, detail="JWT içinde e-posta bulunamadı.")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="JWT içinde kullanıcı bilgisi bulunamadı.")
 
-        user = db.query(User).filter(User.email == email).first()
+        user = db.query(User).filter(User.id == user_id).first()
         if not user:
             raise HTTPException(status_code=401, detail="Kullanıcı sistemde kayıtlı değil.")
 
