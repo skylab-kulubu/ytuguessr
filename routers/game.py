@@ -111,7 +111,12 @@ def get_next_location(request: Request, db: Session = Depends(get_db)):
     return {"image_url": location.image_url}
 
 @router.get("/leaderboard")
-def get_leaderboard(page: int = 1, db: Session = Depends(get_db)):
+def get_leaderboard(request: Request, page: int = 1, db: Session = Depends(get_db)):
+    try:
+        current_user = decode_jwt(request, db)
+    except HTTPException:
+        current_user = None
+
     page_size = settings.LEADERBOARD_PAGE_SIZE
     offset = (page - 1) * page_size
 
@@ -149,6 +154,7 @@ def get_leaderboard(page: int = 1, db: Session = Depends(get_db)):
         {
             "name": format_name(user.email, user.show_name),
             "score": user.score,
+            "is_me": current_user is not None and user.id == current_user.id
         }
         for user in users
     ]
