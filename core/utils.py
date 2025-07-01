@@ -1,7 +1,7 @@
 import math
 import jwt
 import time
-from fastapi import HTTPException
+from fastapi import Query, HTTPException
 from core.config import settings
 from models.models import User
 
@@ -38,3 +38,9 @@ def decode_jwt(request, db):
         return user
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Oturum doğrulaması başarısız.")
+    
+def verify_admin_key(key: str | None = Query(None)):
+    if key is None:
+        raise HTTPException(status_code=401, detail="Admin key gereklidir.")
+    if key != settings.ADMIN_SECRET:
+        raise HTTPException(status_code=401, detail="Yetkisiz erişim.")
