@@ -8,6 +8,7 @@ class User(Base):
     score = Column(Integer, default=0)
     completed = Column(Boolean, default=False)
     show_name = Column(Boolean, default=False)
+    ip_address = Column(String, nullable=True)
 
 class Location(Base):
     __tablename__ = "locations"

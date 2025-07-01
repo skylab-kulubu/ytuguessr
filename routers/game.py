@@ -20,14 +20,18 @@ def get_db():
         db.close()
 
 @router.post("/start")
-def start_game(data: StartGameRequest, db: Session = Depends(get_db)):
+def start_game(data: StartGameRequest, request: Request, db: Session = Depends(get_db)):
     if not re.fullmatch(r".+@(std\.)?yildiz\.edu\.tr", data.school_mail.lower()):
         raise HTTPException(status_code=400, detail="Sadece yildiz.edu.tr uzantılı mailler kabul edilir.")
 
     if db.query(User).filter_by(email=data.school_mail.lower()).first():
         raise HTTPException(status_code=400, detail="Bu mail ile zaten oynandı.")
     
-    user = User(email=data.school_mail.lower(), show_name=data.show_name)
+    user = User(
+        email=data.school_mail.lower(),
+        show_name=data.show_name,
+        ip_address=request.client.host
+    )
     db.add(user)
     db.commit()
 
