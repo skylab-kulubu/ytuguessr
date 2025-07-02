@@ -55,16 +55,22 @@ def start_game(data: StartGameRequest, request: Request, db: Session = Depends(g
 def make_guess(data: GuessRequest, request: Request, db: Session = Depends(get_db)):
     user = decode_jwt(request, db)
 
-    guess = db.query(Guess).filter_by(user_id=user.id, distance=None).first()
+    guess = (
+        db.query(Guess)
+        .filter_by(user_id=user.id, distance=None)
+        .order_by(Guess.id.asc())
+        .first()
+    )
+
     if not guess:
         raise HTTPException(status_code=400, detail="Tahmin yapılacak konum kalmadı.")
+
+    if guess.started_at is None:
+        raise HTTPException(status_code=400, detail="Soru başlatılmadan tahmin yapılamaz.")
 
     location = db.query(Location).filter_by(id=guess.location_id).first()
     now = datetime.now(timezone.utc).timestamp()
 
-    if guess.started_at is None:
-        raise HTTPException(status_code=400, detail="Soru başlatılmadan tahmin yapılamaz.")
-    
     distance = haversine(data.latitude, data.longitude, location.lat, location.lng)
     duration = now - guess.started_at
 
@@ -95,18 +101,34 @@ def make_guess(data: GuessRequest, request: Request, db: Session = Depends(get_d
 @router.post("/next")
 def get_next_location(request: Request, db: Session = Depends(get_db)):
     user = decode_jwt(request, db)
+    now = datetime.now(timezone.utc).timestamp()
 
-    guess = db.query(Guess).filter_by(user_id=user.id, distance=None).first()
+    guess = (
+        db.query(Guess)
+        .filter_by(user_id=user.id, distance=None)
+        .filter(Guess.started_at.isnot(None))
+        .first()
+    )
+
     if not guess:
-        return {"message": "Tüm konumlar işaretlendi."}
-    
-    location = db.query(Location).filter_by(id=guess.location_id).first()
-
-    if guess.started_at is None:
-        guess.started_at = datetime.now(timezone.utc).timestamp()
+        guess = (
+            db.query(Guess)
+            .filter_by(user_id=user.id, distance=None)
+            .order_by(Guess.id.asc())
+            .first()
+        )
+        if not guess:
+            return {"message": "Tüm konumlar işaretlendi."}
+        guess.started_at = now
         db.commit()
 
-    return {"image_url": location.image_url}
+    location = db.query(Location).filter_by(id=guess.location_id).first()
+    time_left = max(0, settings.QUESTION_DURATION - (now - guess.started_at))
+
+    return {
+        "image_url": location.image_url,
+        "time_left": time_left
+    }
 
 @router.get("/leaderboard")
 def get_leaderboard(request: Request, page: int = 1, db: Session = Depends(get_db)):
