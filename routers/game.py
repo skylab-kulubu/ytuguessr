@@ -78,7 +78,11 @@ def get_next_location(request: Request, db: Session = Depends(get_db)):
     location = db.query(Location).filter_by(id=guess.location_id).first()
     time_left = max(0, settings.QUESTION_DURATION - (now - guess.started_at))
 
+    total_answered = db.query(Guess).filter(Guess.user_id == user.id, Guess.distance != None).count()
+    question_number = total_answered + 1
+
     return {
+        "question_number": question_number,
         "image_url": location.image_url,
         "time_left": time_left
     }
@@ -124,11 +128,11 @@ def make_guess(data: GuessRequest, request: Request, db: Session = Depends(get_d
         db.commit()
 
     return {
+        "question_number": total_answered,
         "current_score": user.score,
         "earned_score": score,
         "distance_km": distance,
-        "time_sec": duration,
-        "question_number": total_answered
+        "time_sec": duration
     }
 
 @router.get("/summary")
