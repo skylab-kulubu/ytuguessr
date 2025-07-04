@@ -131,6 +131,46 @@ def make_guess(data: GuessRequest, request: Request, db: Session = Depends(get_d
         "question_number": total_answered
     }
 
+@router.get("/summary")
+def get_summary(request: Request, db: Session = Depends(get_db)):
+    user = decode_jwt(request, db)
+
+    if not user.completed:
+        raise HTTPException(status_code=400, detail="Kullanıcı oyunu henüz tamamlamamış.")
+
+    guesses = (
+        db.query(Guess)
+        .filter_by(user_id=user.id)
+        .filter(Guess.distance != None)
+        .order_by(Guess.id.asc())
+        .all()
+    )
+
+    total_distance = 0
+    total_duration = 0
+    total_score = 0
+
+    details = []
+    for g in guesses:
+        detail = {
+            "distance_km": g.distance,
+            "time_sec": g.time_taken,
+            "score": g.score,
+        }
+        details.append(detail)
+        total_distance += g.distance
+        total_duration += g.time_taken
+        total_score += g.score
+
+    return {
+        "summary": {
+            "total_distance_km": total_distance,
+            "total_time_sec": total_duration,
+            "total_score": total_score,
+        },
+        "guesses": details
+    }
+
 @router.get("/leaderboard")
 def get_leaderboard(request: Request, page: int = 1, db: Session = Depends(get_db)):
     try:
