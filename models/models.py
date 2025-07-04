@@ -27,4 +27,4 @@ class Guess(Base):
     distance = Column(Float, nullable=True)
     started_at = Column(Float, nullable=True)
     time_taken = Column(Float, nullable=True)
-    score = Column(Integer, nullable=True)
+    score = Column(Float, nullable=True)
