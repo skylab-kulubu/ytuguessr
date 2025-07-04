@@ -5,7 +5,7 @@ class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, index=True)
-    score = Column(Integer, default=0)
+    score = Column(Float, default=0.0)
     completed = Column(Boolean, default=False)
     show_name = Column(Boolean, default=False)
     ip_address = Column(String, nullable=True)
