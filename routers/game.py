@@ -22,16 +22,42 @@ def get_db():
 
 @router.post("/start")
 def start_game(data: StartGameRequest, request: Request, db: Session = Depends(get_db)):
-    if not re.fullmatch(r".+@(std\.)?yildiz\.edu\.tr", data.school_mail.lower()):
-        raise HTTPException(status_code=400, detail="Sadece yildiz.edu.tr uzantılı mailler kabul edilir.")
-    
-    user = User(
-        email=data.school_mail.lower(),
-        show_name=data.show_name,
-        ip_address=request.client.host
-    )
+    user = None
+
+    if data.again:
+        try:
+            current_user = decode_jwt(request, db)
+        except HTTPException:
+            raise HTTPException(status_code=401, detail="Oturum geçersiz.")
+
+        if not current_user.completed:
+            raise HTTPException(status_code=400, detail="Oyun tamamlanmadan tekrar başlatılamaz.")
+
+        user = User(
+            email=current_user.email,
+            show_name=current_user.show_name,
+            ip_address=request.client.host,
+            score=0.0,
+            completed=False
+        )
+    else:
+        if not data.school_mail:
+            raise HTTPException(status_code=400, detail="Okul maili gereklidir.")
+
+        if not re.fullmatch(r".+@(std\.)?yildiz\.edu\.tr", data.school_mail.lower()):
+            raise HTTPException(status_code=400, detail="Sadece yildiz.edu.tr uzantılı mailler kabul edilir.")
+        
+        user = User(
+            email=data.school_mail.lower(),
+            show_name=data.show_name,
+            ip_address=request.client.host,
+            score=0.0,
+            completed=False
+        )
+
     db.add(user)
     db.commit()
+    db.refresh(user)
 
     locations = get_random_locations(db)
     for loc in locations:
@@ -39,7 +65,7 @@ def start_game(data: StartGameRequest, request: Request, db: Session = Depends(g
     db.commit()
 
     token = create_jwt(user.id)
-
+    
     response = JSONResponse(content={"message": "Oyun başlatıldı."})
     response.set_cookie(
         key="session",
@@ -121,6 +147,7 @@ def make_guess(data: GuessRequest, request: Request, db: Session = Depends(get_d
     guess.score = score
     user.score += score
     db.commit()
+    db.refresh(user)
 
     total_answered = db.query(Guess).filter(Guess.user_id == user.id, Guess.distance != None).count()
     if total_answered >= settings.LOCATION_COUNT:
