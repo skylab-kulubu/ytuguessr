@@ -135,6 +135,38 @@ def make_guess(data: GuessRequest, request: Request, db: Session = Depends(get_d
         "time_sec": duration
     }
 
+@router.get("/status")
+def game_status(request: Request, db: Session = Depends(get_db)):
+    try:
+        user = decode_jwt(request, db)
+    except HTTPException:
+        return {"has_active_game": False}
+
+    active_guess = (
+        db.query(Guess)
+        .filter_by(user_id=user.id)
+        .filter(Guess.distance == None)
+        .first()
+    )
+
+    has_active_game = active_guess is not None
+
+    response = {
+        "has_active_game": has_active_game,
+        "email": user.email,
+    }
+
+    if has_active_game:
+        total_answered = db.query(Guess).filter(
+            Guess.user_id == user.id,
+            Guess.distance != None
+        ).count()
+
+        response["current_score"] = user.score
+        response["question_number"] = total_answered + 1
+
+    return response
+
 @router.get("/summary")
 def get_summary(request: Request, db: Session = Depends(get_db)):
     user = decode_jwt(request, db)
