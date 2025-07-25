@@ -159,6 +159,8 @@ def make_guess(data: GuessRequest, request: Request, db: Session = Depends(get_d
         "current_score": user.score,
         "earned_score": score,
         "distance_km": distance,
+        "actual_lat": location.lat,
+        "actual_lng": location.lng,
         "time_sec": duration
     }
 
