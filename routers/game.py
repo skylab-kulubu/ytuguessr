@@ -133,12 +133,14 @@ def make_guess(data: GuessRequest, request: Request, db: Session = Depends(get_d
     location = db.query(Location).filter_by(id=guess.location_id).first()
     now = datetime.now(timezone.utc).timestamp()
 
-    distance = haversine(data.latitude, data.longitude, location.lat, location.lng)
+    score = 0
+    distance = None
     duration = now - guess.started_at
 
-    score = 0
-    if duration <= settings.QUESTION_DURATION:
-        score = calculate_score(distance, duration)
+    if not (data.latitude == 0 and data.longitude == 0):
+        distance = haversine(data.latitude, data.longitude, location.lat, location.lng)
+        if duration <= settings.QUESTION_DURATION:
+            score = calculate_score(distance, duration)
         
     guess.guessed_lat = data.latitude
     guess.guessed_lng = data.longitude
