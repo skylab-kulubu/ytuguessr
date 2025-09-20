@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useGuard } from "@/lib/hooks/useGuard";
@@ -35,6 +35,12 @@ function GameCore() {
 
   const [showMap, setShowMap] = useState(false);
 
+  useEffect(() => {
+    if (status && status.has_active_game === false && !guessMut.isSuccess) {
+      router.push("/");
+    }
+  }, [status, router, guessMut.isSuccess]);
+
   const handleConfirmGuess = useCallback(() => {
     if (!guess) return;
     safeGuess({ lat: guess[0], lng: guess[1] });
@@ -46,6 +52,10 @@ function GameCore() {
     return <GameLoadingScreen />;
   if (statusQuery.isError)
     return <GameLoadingScreen error="Sunucudan durum alınamadı. Lütfen tekrar deneyin." />;
+
+  if (status && status.has_active_game === false && !guessMut.isSuccess) {
+    return <GameLoadingScreen />;
+  }
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-black text-white">

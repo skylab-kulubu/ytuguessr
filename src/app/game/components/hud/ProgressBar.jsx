@@ -68,7 +68,7 @@ export default function ProgressBar({
         ref={pathRef}
         d={d}
         fill="transparent"
-        stroke="#8125E8"
+        stroke="#BEBAD1"
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         initial={{ strokeDasharray: `${perimeter} ${perimeter}` }}

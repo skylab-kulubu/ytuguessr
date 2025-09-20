@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useSummary } from "../../lib/hooks/useSummary";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -11,7 +11,20 @@ export default function SummaryPage() {
   const router = useRouter();
   const { isLoading, error, formatted } = useSummary();
 
+  useEffect(() => {
+    if (error) {
+      if (error.response?.status === 400) {
+        router.push("/");
+        return;
+      }
+    }
+  }, [error, router]);
+
   if (isLoading) return <LoadingScreen />;
+  
+  if (error && error.response?.status === 400) {
+    return <LoadingScreen />;
+  }
   
   if (error) return (
     <div className="min-h-screen bg-[#1B1740] text-white">
@@ -28,6 +41,10 @@ export default function SummaryPage() {
       </div>
     </div>
   );
+
+  if (!formatted) {
+    return <LoadingScreen />;
+  }
 
   const { summary, guesses } = formatted;
 

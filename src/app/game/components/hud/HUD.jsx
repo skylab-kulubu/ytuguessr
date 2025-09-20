@@ -37,7 +37,7 @@ export default function HUD({ secondsLeft, totalSeconds = 60 }) {
           className="px-8 py-1 min-w-24 min-h-8 bg-gray-800/50 rounded-xl flex items-center justify-center"
         >
           <span className="text-white text-lg font-semibold">
-            {secondsLeft}
+            {secondsLeft ? secondsLeft : "-" }
           </span>
         </div>
       </div>
