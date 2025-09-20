@@ -327,3 +327,15 @@ def get_leaderboard(request: Request, page: int = 1, db: Session = Depends(get_d
         "leaderboard": leaderboard,
         "user_rank": user_rank
     }
+
+@router.get("/stats")
+def get_stats(db: Session = Depends(get_db)):
+    total_games = db.query(func.count(User.id)).scalar()
+    unique_users = db.query(func.count(func.distinct(User.email))).scalar()
+    total_locations = db.query(func.count(Location.id)).scalar()
+
+    return {
+        "total_games": total_games,
+        "unique_users": unique_users,
+        "total_locations": total_locations,
+    }
