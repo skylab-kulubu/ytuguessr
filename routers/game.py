@@ -301,9 +301,29 @@ def get_leaderboard(request: Request, page: int = 1, db: Session = Depends(get_d
         for user in users
     ]
 
+    user_rank = None
+    if current_user:
+        best_score = (
+            db.query(func.max(User.score))
+            .filter(User.email == current_user.email, User.completed == True)
+            .scalar()
+        )
+        if best_score is not None:
+            higher_count = (
+                db.query(User.email)
+                .join(
+                    subquery,
+                    (User.email == subquery.c.email) & (User.score == subquery.c.max_score)
+                )
+                .filter(User.score > best_score)
+                .count()
+            )
+            user_rank = higher_count + 1
+
     return {
         "page": page,
         "total_pages": (total_users + page_size - 1) // page_size,
         "total_users": total_users,
         "leaderboard": leaderboard,
+        "user_rank": user_rank
     }
