@@ -44,11 +44,13 @@ def start_game(data: StartGameRequest, request: Request, db: Session = Depends(g
         if not data.school_mail:
             raise HTTPException(status_code=400, detail="Okul maili gereklidir.")
 
-        if not re.fullmatch(r".+@(std\.)?yildiz\.edu\.tr", data.school_mail.lower()):
-            raise HTTPException(status_code=400, detail="Sadece yildiz.edu.tr uzantılı mailler kabul edilir.")
+        email = data.school_mail.lower()
+
+        if email not in settings.VALID_EMAILS:
+            raise HTTPException(status_code=400, detail="Sadece geçerli okul mailleri ile giriş yapılabilir.")
         
         user = User(
-            email=data.school_mail.lower(),
+            email=email,
             show_name=data.show_name,
             ip_address=request.client.host,
             score=0.0,

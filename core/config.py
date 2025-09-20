@@ -1,4 +1,5 @@
 import os
+import json
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -23,5 +24,12 @@ class Settings:
             f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
             f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
         )
+    
+    @property
+    def VALID_EMAILS(self):
+        if not hasattr(self, "_valid_emails"):
+            with open("mails.json", "r", encoding="utf-8") as f:
+                self._valid_emails = set(json.load(f))
+        return self._valid_emails
 
 settings = Settings()
