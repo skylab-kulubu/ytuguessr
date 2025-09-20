@@ -19,6 +19,7 @@ export const useHandleQuestion = ({ status, nextMut, guessMut, safeNext, safeGue
   const [remaining, setRemaining] = useState(0);       // saniye int
   const [guess, setGuess] = useState(null);            // [lat,lng]
   const [actual, setActual] = useState(null);          // [lat,lng]
+  const [formattedDistance, setFormattedDistance] = useState(null); // formatlanmış mesafe
 
   /* REFS FOR AUTO GUESS ------------------------------------------------------------------ */
   const autoSentRef = useRef(false);
@@ -54,8 +55,36 @@ export const useHandleQuestion = ({ status, nextMut, guessMut, safeNext, safeGue
   useEffect(() => {
     if (guessMut.isSuccess && guessMut.data?.actual_lat && guessMut.data?.actual_lng) {
       setActual([guessMut.data.actual_lat, guessMut.data.actual_lng]);
+      
+      // Distance'ı formatla (km'den m'ye çevir ve formatla)
+      const distanceInMeters = guessMut.data?.distance_km * 1000;
+      setFormattedDistance(formatDistance(distanceInMeters));
     }
   }, [guessMut.isSuccess, guessMut.data]);
+
+  /* DISTANCE FORMATTING ------------------------------------------------------------------ */
+  const formatDistance = (distance) => {
+    if (!Number.isFinite(distance)) return null;
+    
+    if (distance === 0) return "0 m";
+    
+    // Distance < 1m && > 0 -> cm'e dönüştür
+    if (distance < 1 && distance > 0) {
+      const centimeters = distance * 100;
+      return centimeters < 10 ? `${centimeters.toFixed(2)} cm` : `${Math.round(centimeters)} cm`;
+    }
+    
+    // Distance >= 5000m -> km'e dönüştür
+    if (distance >= 5000) {
+      const kilometers = distance / 1000;
+      return kilometers >= 10 
+        ? `${Math.round(kilometers)} km` 
+        : `${kilometers.toFixed(1)} km`;
+    }
+    
+    // Distance 1m-5000m arası -> metre olarak göster
+    return `${Math.round(distance)} m`;
+  };
 
   /* OTOMATİK 0-TAHMİN ------------------------------------------------------------------ */
   useEffect(() => { // Soru her değiştiğinde bayrakları sıfırla
@@ -87,5 +116,6 @@ export const useHandleQuestion = ({ status, nextMut, guessMut, safeNext, safeGue
     guess,
     actual,
     setGuess,
+    formattedDistance,
   };
 };

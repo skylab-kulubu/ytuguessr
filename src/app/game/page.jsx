@@ -31,7 +31,7 @@ function GameCore() {
 
   const status = statusQuery.data;
 
-  const { question, remaining, guess, actual, setGuess } = useHandleQuestion({ status, nextMut, guessMut, safeNext, safeGuess });
+  const { question, remaining, guess, actual, setGuess, formattedDistance } = useHandleQuestion({ status, nextMut, guessMut, safeNext, safeGuess });
 
   const [showMap, setShowMap] = useState(false);
 
@@ -54,9 +54,7 @@ function GameCore() {
       )}
 
       {!status.game_over && (
-        <HUD
-          secondsLeft={remaining}
-        />
+        <HUD secondsLeft={remaining} />
       )}
 
       <GuessMap
@@ -74,6 +72,7 @@ function GameCore() {
           score={guessMut.data.earned_score}
           totalScore={guessMut.data.current_score}
           distance={guessMut.data.distance_km}
+          formattedDistance={formattedDistance}
           guessCoords={guess}
           correctCoords={actual}
           questionNumber={guessMut.data.question_number}
