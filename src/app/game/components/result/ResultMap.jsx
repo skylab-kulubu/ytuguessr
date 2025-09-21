@@ -1,70 +1,21 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Polyline,
-  Circle,
-  useMap
-} from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Polyline, Circle, useMap } from "react-leaflet";
 import L from "leaflet";
 import { useEffect } from "react";
 
-import iconRetina from "leaflet/dist/images/marker-icon-2x.png";
-import icon from "leaflet/dist/images/marker-icon.png";
-import shadow from "leaflet/dist/images/marker-shadow.png";
-
-// Leaflet marker ikonlarını ayarla
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: iconRetina.src ?? iconRetina,
-  iconUrl: icon.src ?? icon,
-  shadowUrl: shadow.src ?? shadow,
+const guessMarker = L.icon({
+  iconUrl: "/marker-red.svg",
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
 });
 
-// Kırmızı marker ikonu (tahmin)
-const guessIcon = L.icon({
-  iconRetinaUrl: iconRetina.src ?? iconRetina,
-  iconUrl: icon.src ?? icon,
-  shadowUrl: shadow.src ?? shadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
+const correctMarker = L.icon({
+  iconUrl: "/marker-purple.svg",
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
 });
-
-// Yeşil marker ikonu (doğru konum)
-const correctIcon = L.icon({
-  iconRetinaUrl: iconRetina.src ?? iconRetina,
-  iconUrl: icon.src ?? icon,
-  shadowUrl: shadow.src ?? shadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-  className: 'correct-marker'
-});
-
-// CSS stil eklemek için
-const markerStyles = `
-  .correct-marker {
-    filter: hue-rotate(120deg) saturate(1.2);
-  }
-  
-  .map-legend {
-    z-index: 9999 !important;
-    position: absolute !important;
-    pointer-events: auto !important;
-  }
-  
-  .map-distance-info {
-    z-index: 9999 !important;
-    position: absolute !important;
-    pointer-events: auto !important;
-  }
-`;
 
 // Haritayı uygun şekilde sığdıran komponent
 const FitToMarkers = ({ guessCoords, correctCoords, distance }) => {
@@ -140,22 +91,16 @@ const DashedLine = ({ positions }) => {
     <Polyline
       positions={positions}
       pathOptions={{
-        color: '#fbbf24', // amber-400
-        weight: 3,
+        color: '#000000',
+        weight: 2,
         opacity: 0.8,
-        dashArray: '10, 10', // kesikli çizgi
+        dashArray: '6, 6', 
       }}
     />
   );
 };
 
-export default function ResultMap({
-  guessCoords = null,      // [lat, lng] - kullanıcının tahmini
-  correctCoords = null,    // [lat, lng] - doğru koordinatlar
-  distance = null,         // km cinsinden mesafe
-  className = "",
-}) {
-
+export default function ResultMap({ guessCoords = null, correctCoords = null, distance = null, className = "" }) {
   // Varsayılan merkez koordinat
   const defaultCenter = [41.025823, 28.889584];
 
@@ -185,9 +130,6 @@ export default function ResultMap({
 
   return (
     <div className={`relative overflow-hidden rounded-lg ${className}`}>
-      {/* CSS stillerini head'e ekle */}
-      <style jsx global>{markerStyles}</style>
-
       <MapContainer
         center={displayCoords}
         zoom={15}
@@ -215,7 +157,7 @@ export default function ResultMap({
         {validGuessCoords && (
           <Marker
             position={validGuessCoords}
-            icon={guessIcon}
+            icon={guessMarker}
           />
         )}
 
@@ -225,7 +167,7 @@ export default function ResultMap({
             {/* Doğru konum marker'ı */}
             <Marker
               position={validCorrectCoords}
-              icon={correctIcon}
+              icon={correctMarker}
             />
 
             {/* İki nokta arasında kesikli çizgi */}
@@ -239,59 +181,17 @@ export default function ResultMap({
             center={displayCoords}
             radius={distanceInMeters}
             pathOptions={{
-              color: '#fbbf24', // amber-400
+              color: '#000000',
               weight: 2,
               opacity: 0.6,
-              fillColor: '#fbbf24',
+              fillColor: '#000000',
               fillOpacity: 0.1,
-              dashArray: '5, 5', // kesikli kenar
+              dashArray: '5, 5',
             }}
           />
         )}
 
-
-
       </MapContainer>
-
-      {/* Legend - Harita container'ının dışında 
-      <div className="map-legend absolute bottom-2 left-2 bg-white rounded-lg p-2 text-xs shadow-lg border border-gray-200"
-        style={{
-          zIndex: 100,
-          position: 'absolute',
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(4px)'
-        }}>
-        {validGuessCoords && (
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-3 h-3 bg-blue-600 rounded-full border border-white"></div>
-            <span className="text-black">Tahmininiz</span>
-          </div>
-        )}
-        {validCorrectCoords && validGuessCoords && (
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-3 h-3 bg-green-600 rounded-full border border-white"></div>
-            <span>Doğru konum</span>
-          </div>
-        )}
-        {distance && !validCorrectCoords && (
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 border-2 border-amber-400 rounded-full bg-amber-400/20"></div>
-            <span className="text-black">Mesafe alanı</span>
-          </div>
-        )}
-      </div>*/}
-
-      {/* Mesafe bilgisi - Harita container'ının dışında
-      {distance && (
-        <div className="map-distance-info absolute top-2 right-2 bg-white rounded-lg px-3 py-1 text-sm font-medium shadow-lg border border-gray-200"
-          style={{
-            zIndex: 100,
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(4px)'
-          }}>
-          <span className="text-black"> Mesafe: { distanceInMeters < 10 ? `${distanceInMeters.toFixed(2)} m` : `${Math.round(distanceInMeters)} m`}</span>
-        </div>
-      )} */}
     </div>
   );
 }

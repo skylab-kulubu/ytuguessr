@@ -8,15 +8,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSwipeable } from "react-swipeable";
 import MapOpenButton from "./hud/MapOpenButton";
 
-import iconRetina from "leaflet/dist/images/marker-icon-2x.png";
-import icon from "leaflet/dist/images/marker-icon.png";
-import shadow from "leaflet/dist/images/marker-shadow.png";
-
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: iconRetina.src ?? iconRetina,
-  iconUrl: icon.src ?? icon,
-  shadowUrl: shadow.src ?? shadow,
+const guessMarker = L.icon({
+  iconUrl: "/marker-red.svg",
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
 });
 
 const BOUNDS = [
@@ -185,7 +180,7 @@ export default function GuessMap({
               <OuterMask />
               <FitToBounds />
               <ClickCapture onPick={onPick} />
-              {marker && <Marker position={marker} />}
+              {marker && <Marker position={marker} icon={guessMarker} />}
             </MapContainer>
           </motion.div>
         )}
