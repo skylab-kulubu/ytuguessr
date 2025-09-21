@@ -57,10 +57,10 @@ export default function StartGame() {
           <div className={`relative rounded-xl bg-[#2a2353]/80 border ${error ? "border-red-500/60" : "border-[#3b3163]"} focus-within:ring-2 focus-within:ring-violet-400/70`}>
             <input placeholder="ogrenci@std.yildiz.edu.tr" value={mail}
               onChange={(e) => setMail(e.target.value)}
-              className=" w-full bg-transparent text-white placeholder-white/40 px-4 py-3 rounded-xl outline-none"
+              className=" w-full bg-transparent text-white placeholder-white/40 pl-4 pr-12 py-3 rounded-xl outline-none"
             />
 
-            <button type="submit" className={`absolute right-1 top-1/2 -translate-y-1/2 text-white p-3 rounded-lg ${isSchoolMail ? "bg-indigo-500" : error ? "bg-red-500/70 disabled" : loading ? "bg-indigo-300 disabled" : "bg-white/10 disabled"}`}> 
+            <button type="submit" className={`absolute right-1 top-1/2 -translate-y-1/2 text-white p-3 rounded-lg ${error ? "bg-red-500/70 disabled" : loading ? "bg-violet-300 disabled" : isSchoolMail ? "bg-indigo-500" : "bg-white/10 disabled"}`}> 
               <AnimatePresence mode="wait">
                 <motion.div key={loading ? "loading" : error ? "error" : "default"}
                 initial={{ y: 20, opacity:0}}

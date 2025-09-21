@@ -123,9 +123,9 @@ export default function GuessMap({
             animate={{ opacity: 1 }}
             transition={{ duration: 0.2 }}
             onClick={onConfirm}
-            className={`fixed left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 rounded-xl bg-green-600/90 px-6 py-3 font-medium text-white shadow-lg backdrop-blur-md transition-colors hover:bg-green-600 ${isFullScreen ? 'bottom-8' : 'bottom-8'}`}
+            className={`fixed left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 rounded-xl bg-green-600/60 border border-green-700 px-6 py-3 font-semibold text-white shadow-lg backdrop-blur-md bottom-8`}
           >
-            <Check className="size-5" strokeWidth={2} />
+            <Check className="size-5" strokeWidth={3} />
             Tahmini Onayla
           </motion.button>
         )}
