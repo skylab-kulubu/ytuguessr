@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { startGame } from "../../lib/gameService";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2, X, ChevronUp, TriangleAlert } from "lucide-react";
@@ -18,6 +19,7 @@ export default function StartGame() {
   const [error, setError] = useState("");
   const [isSchoolMail, setIsSchoolMail] = useState(false);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     setIsSchoolMail(isValidMail(mail));
@@ -33,6 +35,7 @@ export default function StartGame() {
         show_name: true,
         again: false,
       });
+      queryClient.invalidateQueries(["status"]);
       router.push("/game");
     } catch (error) {
       const msg = error?.response?.data?.detail || "Oyun başlatılamadı.";

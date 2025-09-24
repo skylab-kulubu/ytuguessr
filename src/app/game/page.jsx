@@ -2,8 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useState, useEffect } from "react";
-import { QueryClientProvider } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useGuard } from "@/lib/hooks/useGuard";
 import { useHandleQuestion } from "@/lib/hooks/useHandleQuestion";
 
@@ -19,15 +19,8 @@ const GuessMap = dynamic(() => import("./components/GuessMap"), {
 
 function GameCore() {
   const router = useRouter();
-  
-  /* GUARD HOOK ------------------------------------------------------------------ */
-  const {
-    statusQuery,      // query for overall game status
-    safeGuess,        // guarded guess mutation
-    safeNext,         // guarded next-question mutation
-    guessMut,         // raw guess mutation object (for modal flags)
-    nextMut,          // raw next mutation (for question data)
-  } = useGuard();
+  const queryClient = useQueryClient();
+  const { statusQuery, safeGuess, safeNext, guessMut, nextMut } = useGuard();
 
   const status = statusQuery.data;
 
@@ -47,7 +40,6 @@ function GameCore() {
     setShowMap(false);
   }, [guess, safeGuess]);
 
-  /* RENDER GUARD ------------------------------------------------------------------ */
   if (statusQuery.isLoading)
     return <GameLoadingScreen />;
   if (statusQuery.isError)
@@ -76,7 +68,6 @@ function GameCore() {
         showMap={showMap}
       />
 
-      {/* RESULT MODAL */}
       {guessMut.isSuccess && (
         <ResultModal
           score={guessMut.data.earned_score}
@@ -89,14 +80,12 @@ function GameCore() {
           maxQuestions={5}
           onNext={() => {
             guessMut.reset();
-            const last = guessMut.data.question_number >= 5;
-            if (last) { 
-              router.push("/summary");
-            } else {
-              safeNext();
-            }
+            safeNext();
           }}
-          onSummary={() => router.push("/summary")}
+          onSummary={() => {
+            queryClient.invalidateQueries(["summary"]);
+            router.push("/summary");
+          }}
         />
       )}
     </div>

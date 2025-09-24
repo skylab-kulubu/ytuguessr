@@ -1,25 +1,24 @@
-/* ---------------------------------------------------------------------
- * Question handling ve otomatik tahmin mantığını yöneten hook
- * 
- * @param {Object} params
- * @param {Object} params.status - Game status from useGuard
- * @param {Object} params.nextMut - Next question mutation from useGuard
- * @param {Object} params.guessMut - Guess mutation from useGuard
- * @param {Function} params.safeNext - Safe next function from useGuard
- * @param {Function} params.safeGuess - Safe guess function from useGuard
- * --------------------------------------------------------------------- */
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { formatDistance } from "../utils";
 
 export const useHandleQuestion = ({ status, nextMut, guessMut, safeNext, safeGuess }) => {
-  
-  /* LOCAL STATE ------------------------------------------------------------------ */  
-  const [question, setQuestion] = useState(null);      // { image_url, time_left }
-  const [remaining, setRemaining] = useState(0);       // saniye int
-  const [guess, setGuess] = useState(null);            // [lat,lng]
-  const [actual, setActual] = useState(null);          // [lat,lng]
-  const [formattedDistance, setFormattedDistance] = useState(null); // formatlanmış mesafe
+
+  /* LOCAL STATE ------------------------------------------------------------------ */
+  const [question, setQuestion] = useState(null);
+  const [remaining, setRemaining] = useState(0);
+  const [guess, setGuess] = useState(null);
+
+  const distanceInMeters = guessMut.data?.distance_km ? guessMut.data.distance_km * 1000 : null;
+  const formattedDistance = useMemo(() => formatDistance(distanceInMeters), [distanceInMeters]);
+
+  const actual = useMemo(() => {
+  if (guessMut.isSuccess && guessMut.data?.actual_lat && guessMut.data?.actual_lng) {
+    return [guessMut.data.actual_lat, guessMut.data.actual_lng];
+  }
+  return null;
+}, [guessMut.isSuccess, guessMut.data]);
 
   /* REFS FOR AUTO GUESS ------------------------------------------------------------------ */
   const autoSentRef = useRef(false);
@@ -36,7 +35,6 @@ export const useHandleQuestion = ({ status, nextMut, guessMut, safeNext, safeGue
   useEffect(() => { // nextMut başarıya ulaştığında soruyu state'e al
     if (nextMut.isSuccess && nextMut.data) {
       setQuestion(nextMut.data);
-      setActual(null);
       setGuess(null);
     }
   }, [nextMut.isSuccess, nextMut.data]);
@@ -52,70 +50,29 @@ export const useHandleQuestion = ({ status, nextMut, guessMut, safeNext, safeGue
     return () => clearInterval(id);
   }, [question]);
 
-  useEffect(() => {
-    if (guessMut.isSuccess && guessMut.data?.actual_lat && guessMut.data?.actual_lng) {
-      setActual([guessMut.data.actual_lat, guessMut.data.actual_lng]);
-      
-      // Distance'ı formatla (km'den m'ye çevir ve formatla)
-      const distanceInMeters = guessMut.data?.distance_km * 1000;
-      setFormattedDistance(formatDistance(distanceInMeters));
-    }
-  }, [guessMut.isSuccess, guessMut.data]);
-
-  /* DISTANCE FORMATTING ------------------------------------------------------------------ */
-  const formatDistance = (distance) => {
-    if (!Number.isFinite(distance)) return null;
-    
-    if (distance === 0) return "0 m";
-    
-    // Distance < 1m && > 0 -> cm'e dönüştür
-    if (distance < 1 && distance > 0) {
-      const centimeters = distance * 100;
-      return centimeters < 10 ? `${centimeters.toFixed(2)} cm` : `${Math.round(centimeters)} cm`;
-    }
-    
-    // Distance >= 5000m -> km'e dönüştür
-    if (distance >= 5000) {
-      const kilometers = distance / 1000;
-      return kilometers >= 10 
-        ? `${Math.round(kilometers)} km` 
-        : `${kilometers.toFixed(1)} km`;
-    }
-    
-    // Distance 1m-5000m arası -> metre olarak göster
-    return `${Math.round(distance)} m`;
-  };
-
   /* OTOMATİK 0-TAHMİN ------------------------------------------------------------------ */
   useEffect(() => { // Soru her değiştiğinde bayrakları sıfırla
     autoSentRef.current = false;
     prevRemainingRef.current = remaining;
   }, [question?.image_url]);
 
-  
+
   useEffect(() => { // UI timer'ı ile otomatik tahmin
     if (
       prevRemainingRef.current > 0 &&   // geri sayım daha önce pozitifti
       remaining === 0 &&                // şimdi 0'a düştü
       !autoSentRef.current &&           // oto-gönderi henüz yapılmadı
       !guessMut.isPending &&            // başka tahmin yollanmıyor
-      !guessMut.isSuccess &&            // manuel tahmin yapılmadı
-      !guess                            // kullanıcı işaret seçmedi
+      !guessMut.isSuccess               // manuel tahmin yapılmadı
+
     ) {
       autoSentRef.current = true;
       setGuess([0, 0]);
-      safeGuess({ lat: 0, lng: 0 });   
+      safeGuess({ lat: 0, lng: 0 });
     }
-    
-    prevRemainingRef.current = remaining;
-  }, [remaining, guess, guessMut.isPending, guessMut.isSuccess, safeGuess]);
 
-  return {
-    question,
-    remaining,
-    guess,
-    actual,
-    setGuess,
-    formattedDistance,
-  };
+    prevRemainingRef.current = remaining;
+  }, [remaining, guessMut.isPending, guessMut.isSuccess, safeGuess]);
+
+  return { question, remaining, guess, actual, setGuess, formattedDistance };
 };
