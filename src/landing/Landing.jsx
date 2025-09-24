@@ -66,7 +66,7 @@ export default function Landing({ onComplete }) {
   return (
     <div {...swipeHandlers} className="relative h-screen w-screen bg-[#1B1740] text-white flex items-center justify-center overflow-hidden">
       {/* ---- Logo ve Yapımcılar ---- */}
-      <motion.div className="absolute inset-x-0 mb-20 flex items-center justify-center"
+      <motion.div className="absolute inset-x-0 mb-20 flex items-center z-10 justify-center"
         initial={{ y: 0, scale: 1 }}
         animate={{ y: step > 0 ? -240 : 0, scale: step > 0 ? 0.9 : 1 }}
         transition={{ duration: 0.4 }}
@@ -75,7 +75,7 @@ export default function Landing({ onComplete }) {
           <img src="/logo.svg" alt="YTUGuessr Logo" className="h-10" />
           {step !== 0 && (
             <span className="text-white/40 font-medium text-md">
-              Fatih Naz - Egehan Avcu
+              <a href="https://www.instagram.com/fatiihnaz" rel="noopener noreferrer">Fatih Naz</a> - <a href="https://www.instagram.com/egehanavcu" rel="noopener noreferrer">Egehan Avcu</a>
             </span>
           )}
         </div>

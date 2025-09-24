@@ -7,16 +7,16 @@ export default function Footer() {
     const currentYear = new Date().getFullYear();
 
     const socialLinks = [
-        { icon: Github, href: "#", label: "GitHub" },
-        { icon: Instagram, href: "#", label: "Instagram" },
-        { icon: Globe, href: "#", label: "Website" },
+        { icon: Github, href: "https://github.com/skylab-kulubu", label: "GitHub" },
+        { icon: Instagram, href: "https://www.instagram.com/ytuskylab", label: "Instagram" },
+        { icon: Globe, href: "https://yildizskylab.com/", label: "Website" },
     ];
 
     const quickLinks = [
         { name: "Ana Sayfa", href: "/" },
-        { name: "Hakkımızda", href: "#" },
-        { name: "Kullanım Şartları", href: "#" },
-        { name: "Gizlilik Politikası", href: "#" },
+        { name: "Hakkımızda", href: "https://yildizskylab.com/" },
+        { name: "Kullanım Şartları", href: "https://skyl.app/kvkk-metni" },
+        { name: "Gizlilik Politikası", href: "https://skyl.app/kvkk-metni" },
     ];
 
     return (
@@ -46,7 +46,7 @@ export default function Footer() {
                             {/* Social links */}
                             <div className="flex space-x-4 justify-center">
                                 {socialLinks.map((social, index) => (
-                                    <a key={index} href={social.href} className="w-10 h-10 bg-white/5 backdrop-blur border border-violet-500/20 rounded-lg flex items-center justify-center text-[#EADAFF] hover:bg-violet-500/20 hover:border-violet-400/50 transition-all duration-200">
+                                    <a key={index} href={social.href} rel="noopener noreferrer" className="w-10 h-10 bg-white/5 backdrop-blur border border-violet-500/20 rounded-lg flex items-center justify-center text-[#EADAFF] hover:bg-violet-500/20 hover:border-violet-400/50 transition-all duration-200">
                                         <social.icon className="w-4 h-4" />
                                     </a>
                                 ))}
@@ -64,7 +64,7 @@ export default function Footer() {
 
                         <div className="grid grid-cols-2 gap-3 md:flex md:flex-row md:gap-6 px-8 md:px-0">
                             {quickLinks.map((link, index) => (
-                                <a key={index} href={link.href} className="text-gray-300 hover:text-violet-400 transition-colors duration-200 text-sm text-center">
+                                <a key={index} href={link.href} rel="noopener noreferrer" className="text-gray-300 hover:text-violet-400 transition-colors duration-200 text-sm text-center">
                                     {link.name}
                                 </a>
                             ))}
@@ -86,11 +86,11 @@ export default function Footer() {
                         </div>
 
                         <div className="flex items-center space-x-6 text-sm text-gray-400">
-                            <a href="#" className="hover:text-violet-400 transition-colors duration-200">
+                            <a href="https://www.instagram.com/fatiihnaz" rel="noopener noreferrer" className="hover:text-violet-400 transition-colors duration-200">
                                 Fatih Naz
                             </a>
                             <span className="text-gray-400">|</span>
-                            <a href="#" className="hover:text-violet-400 transition-colors duration-200">
+                            <a href="https://www.instagram.com/egehanavcu" rel="noopener noreferrer" className="hover:text-violet-400 transition-colors duration-200">
                                 Egehan Avcu
                             </a>
                         </div>
