@@ -25,7 +25,6 @@ export const useCurrentStatus = () =>
   useQuery({
     queryKey: ["status"],
     queryFn : svc.getStatus,
-    refetchInterval: 1000,
     refetchOnMount: "always",
   });
 
