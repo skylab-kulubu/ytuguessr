@@ -24,6 +24,7 @@ export const useCurrentStatus = () =>
     queryKey: ["status"],
     queryFn : svc.getStatus,
     refetchInterval: 1000,
+    refetchOnMount: "always",
   });
 
 /* ---------------------------------------------------------------------

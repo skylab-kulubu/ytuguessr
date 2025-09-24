@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { startGame } from "../../lib/gameService";
+import { startGame, getStatus } from "../../lib/gameService";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2, X, ChevronUp, TriangleAlert } from "lucide-react";
 
@@ -35,7 +35,8 @@ export default function StartGame() {
         show_name: true,
         again: false,
       });
-      queryClient.invalidateQueries(["status"]);
+      await queryClient.invalidateQueries({ queryKey: ["status"] });
+      await queryClient.fetchQuery({ queryKey: ["status"], queryFn: getStatus });
       router.push("/game");
     } catch (error) {
       const msg = error?.response?.data?.detail || "Oyun başlatılamadı.";

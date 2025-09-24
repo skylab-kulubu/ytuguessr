@@ -29,10 +29,12 @@ function GameCore() {
   const [showMap, setShowMap] = useState(false);
 
   useEffect(() => {
-    if (status && status.has_active_game === false && !guessMut.isSuccess) {
+    if (
+      statusQuery.isFetched && !statusQuery.isFetching && status && status.has_active_game === false && !guessMut.isSuccess
+    ) {
       router.push("/");
     }
-  }, [status, router, guessMut.isSuccess]);
+  }, [statusQuery.isFetched, statusQuery.isFetching, status, router, guessMut.isSuccess]);
 
   const handleConfirmGuess = useCallback(() => {
     if (!guess) return;
