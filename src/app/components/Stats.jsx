@@ -4,14 +4,17 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { Play, MapPin, Users } from "lucide-react";
 import { CountUp } from "./utils";
+import { useStats } from "../../lib/hooks/useStats";
 
 export default function Stats() {
     const [hasEntered, setHasEntered] = useState(false);
 
+    const { data } = useStats();
+
     const stats = [
-        { icon: Users, value: 1247, label: "AKTİF OYUNCU" },
-        { icon: MapPin, value: 45, label: "KEŞFEDİLEBİLECEK KONUM" },
-        { icon: Play, value: 8532, label: "OYNANAN OYUN" }
+        { icon: Users, value: data?.unique_users || 0, label: "FARKLI OYUNCU" },
+        { icon: MapPin, value: data?.total_locations || 0, label: "KEŞFEDİLEBİLECEK KONUM" },
+        { icon: Play, value: data?.total_games || 0, label: "OYNANAN OYUN" }
     ];
 
     return (

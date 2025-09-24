@@ -10,4 +10,5 @@ export const makeGuess = (lat, lng) => api.post("/game/guess", { latitude: lat, 
 export const nextQuestion = () => api.post("/game/next").then(r => r.data);
 export const getStatus = () => api.get("/game/status").then(r => r.data);
 export const getSummary = () => api.get("/game/summary").then(r => r.data);
+export const getStats = () => api.get("/game/stats").then(r => r.data);
 export const getLeaderboard = (page = 1) => api.get("/game/leaderboard", { params: { page } }).then(r => r.data);
