@@ -35,6 +35,7 @@ export default function Landing({ onComplete }) {
     []
   );
 
+  /* ------ Ekran Kaydırma Kilidi ------ */
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -42,8 +43,6 @@ export default function Landing({ onComplete }) {
       document.body.style.overflow = prev;
     };
   }, []);
-
-  const isLastSlide = step === slides.length;
 
   const goNext = () => {
     if (step <= slides.length) {
@@ -66,12 +65,11 @@ export default function Landing({ onComplete }) {
 
   return (
     <div {...swipeHandlers} className="relative h-screen w-screen bg-[#1B1740] text-white flex items-center justify-center overflow-hidden">
-
-      <motion.div
+      {/* ---- Logo ve Yapımcılar ---- */}
+      <motion.div className="absolute inset-x-0 mb-20 flex items-center justify-center"
         initial={{ y: 0, scale: 1 }}
         animate={{ y: step > 0 ? -240 : 0, scale: step > 0 ? 0.9 : 1 }}
         transition={{ duration: 0.4 }}
-        className="absolute inset-x-0 mb-20 flex items-center justify-center"
       >
         <div className="flex flex-col items-center">
           <img src="/logo.svg" alt="YTUGuessr Logo" className="h-10" />
@@ -93,20 +91,18 @@ export default function Landing({ onComplete }) {
             transition={{ duration: 0.6 }}
             className="absolute inset-0 flex flex-col items-center justify-center"
           >
-            <motion.div
-              initial={{ y: 0, opacity: 1 }}
-              animate={{ y: step > 0 ? 140 : 0, opacity: 0.9 }}
-              className="mt-2 text-white/70 text-sm flex items-center gap-2"
+            <div className="mt-2 text-white/70 text-sm flex items-center gap-2"
             >
               <span>Başlamak için kaydırın</span>
               <svg className="w-5 h-5 animate-bounce" viewBox="0 0 24 24" fill="none">
                 <path d="M12 5v14M12 19l-5-5M12 19l5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
-
+      
+      {/* ---- Tanıtım Slaytları ---- */}
       <AnimatePresence mode="wait">
         {step > 0 && step <= slides.length && (
           <motion.div
@@ -163,7 +159,8 @@ export default function Landing({ onComplete }) {
           </motion.div>
         )}
       </AnimatePresence>
-
+      
+      {/* ---- Adım Göstergesi ---- */}
       {step !== 0 && (
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-center gap-3">
           {slides.map((_, i) => {
@@ -181,6 +178,7 @@ export default function Landing({ onComplete }) {
         </div>
       )}
 
+      {/* ---- Atla Butonu ---- */}
       {(step === 1 || step === 2) && (
         <button onClick={() => setStep(slides.length + 1)}
           className="absolute top-4 right-4 px-3 py-1.5 rounded-lg text-xs bg-white/10 hover:bg-white/20 border border-white/10"

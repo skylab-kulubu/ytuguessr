@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { formatDistance } from "../utils";
-import { getSummary } from "../gameService";
+import { getSummary } from "../api";
 
 const formatTime = (s) => {
   const m = Math.floor(s / 60);
@@ -15,7 +15,7 @@ export function useSummary() {
   const query = useQuery({
     queryKey: ["summary"],
     queryFn: getSummary,
-    staleTime: 1000 * 60
+    staleTime: 1000 * 60 * 5
   });
 
   const formatted =
@@ -32,8 +32,5 @@ export function useSummary() {
       })),
     };
 
-  return {
-    ...query,
-    formatted,
-  };
+  return { ...query, formatted };
 }

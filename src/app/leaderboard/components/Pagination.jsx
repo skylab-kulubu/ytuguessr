@@ -16,7 +16,7 @@ export default function Pagination({ current, totalPages, totalUsers, onPageChan
                 transition={{ delay: 0.5 + (entriesLength * 0.05), duration: 0.4, ease: "easeOut" }}
             >
 
-                {/* Previous Button */}
+                {/* ---- Önceki Butonu ---- */}
                 <button onClick={() => goTo(current - 1)}
                     disabled={current <= 1}
                     className={`flex items-center gap-2 p-3 rounded-xl font-semibold backdrop-blur border transition-all duration-200
@@ -27,26 +27,21 @@ export default function Pagination({ current, totalPages, totalUsers, onPageChan
                     <ArrowLeft size={16} />
                 </button>
 
-                {/* Page Numbers Container */}
+                {/* ---- Sayfa Numaraları ---- */}
                 <div className="flex items-center gap-1 px-2 py-2 rounded-xl bg-white/5 backdrop-blur border border-violet-500/20 shadow-lg">
                     {(() => { const pageNumbers = [];
-                        
-                        // Eğer toplam sayfa sayısı 5 veya daha azsa, hepsini göster
-                        if (totalPages <= 5) {
+                        if (totalPages <= 5) { // Hepsini göster
                             for (let i = 1; i <= totalPages; i++) {
                                 pageNumbers.push(i);
                             }
                         } else {
-                            
-                            if (current <= 3) {
-                                // Başta ise: 1, 2, 3, 4, ..., son
+                            if (current <= 3) { // Başta ise: 1, 2, 3, 4, ..., son
                                 pageNumbers.push(1, 2, 3, 4);
                                 if (totalPages > 5) {
                                     pageNumbers.push('ellipsis1');
                                     pageNumbers.push(totalPages);
                                 }
-                            } else if (current >= totalPages - 2) {
-                                // Sonda ise: 1, ..., son-3, son-2, son-1, son
+                            } else if (current >= totalPages - 2) { // Sonda ise: 1, ..., son-3, son-2, son-1, son
                                 pageNumbers.push(1);
                                 if (totalPages > 5) {
                                     pageNumbers.push('ellipsis1');
@@ -54,8 +49,7 @@ export default function Pagination({ current, totalPages, totalUsers, onPageChan
                                 for (let i = totalPages - 3; i <= totalPages; i++) {
                                     if (i > 1) pageNumbers.push(i);
                                 }
-                            } else {
-                                // Ortada ise: 1, ..., current-1, current, current+1, ..., son
+                            } else { // Ortada ise: 1, ..., sayfa-1, sayfa, sayfa+1, ..., son
                                 pageNumbers.push(1);
                                 pageNumbers.push('ellipsis1');
                                 pageNumbers.push(current - 1, current, current + 1);
@@ -74,7 +68,7 @@ export default function Pagination({ current, totalPages, totalUsers, onPageChan
                             }
 
                             const isCurrentPage = pageNum === current;
-
+                            
                             return (
                                 <motion.button key={pageNum} onClick={() => goTo(pageNum)}
                                     className={`w-8 h-8 rounded-lg font-semibold transition-all duration-200 text-sm
@@ -92,7 +86,7 @@ export default function Pagination({ current, totalPages, totalUsers, onPageChan
                     })()}
                 </div>
 
-                {/* Next Button */}
+                {/* ---- Sonraki Butonu ---- */}
                 <button onClick={() => goTo(current + 1)}
                     disabled={current >= totalPages}
                     className={`flex items-center gap-2 p-3 rounded-xl font-semibold backdrop-blur border transition-all duration-200
@@ -105,7 +99,7 @@ export default function Pagination({ current, totalPages, totalUsers, onPageChan
                 </button>
             </motion.div>
 
-            {/* Page Info */}
+            {/* ---- Sayfa Bilgisi ---- */}
             <motion.div className="text-center text-gray-400 text-sm mt-3 mb-6"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}

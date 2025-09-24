@@ -50,10 +50,10 @@ export default function SummaryPage() {
 
   return (
     <div className="min-h-screen bg-[#1B1740] text-white">
-      <Header />
-      <div className="p-6 max-w-4xl mx-auto space-y-6 pt-24">
 
-        {/* Header Section */}
+      <Header />
+      
+      <div className="p-6 max-w-4xl mx-auto space-y-6 pt-24">
         <motion.div className="text-center mb-8"
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -73,7 +73,6 @@ export default function SummaryPage() {
 
         <Seperator />
 
-        {/* Summary Card */}
         <motion.div className="bg-slate-100/5 backdrop-blur-sm rounded-xl border border-violet-500/20 overflow-hidden shadow-2xl mb-6"
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: "auto", opacity: 1 }}
@@ -111,7 +110,6 @@ export default function SummaryPage() {
           </div>
         </motion.div>
 
-        {/* Tur Detayları */}
         <motion.div
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: "auto", opacity: 1 }}
@@ -194,7 +192,6 @@ export default function SummaryPage() {
           </div>
         </motion.div>
 
-        {/* Action Buttons */}
         <motion.div className="flex justify-center space-x-4 pt-8"
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

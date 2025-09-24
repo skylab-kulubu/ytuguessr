@@ -1,23 +1,25 @@
-/* ---------------------------------------------------------------------
- * Oyun Kancaları
- * UI katmanını sadeleştirir; React-Query cache’ini
- * otomatik invalidation ile günceller.
- * --------------------------------------------------------------------- */
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import * as svc from "../gameService";
+import * as svc from "../api";
 
 /* ---------------------------------------------------------------------
  * Oyunu başlat (anasayfa)
  * Oyunu başlatmak için backend'e istek gönderir.
  * --------------------------------------------------------------------- */
-export const useStartGame = () =>
-  useMutation({ mutationFn: svc.startGame });
+export const useStartGame = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: svc.startGame,
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["status"] });
+      await qc.fetchQuery({ queryKey: ["status"], queryFn: svc.getStatus });
+    },
+  });
+};
 
 /* ---------------------------------------------------------------------
- * Aktif soru / süre bilgisi (polling)
- * Backend'den aktif soru ve süre bilgisi alır.
- * Her 1 saniyede bir backend'e istek gönderir.
+ * Aktif soru bilgisi
+ * Backend'den aktif soru bilgisi alır.
+ * Her 1 saniyede bir backend'e istek gönderir. (Oyunun var olduğunun kontrolü)
  * --------------------------------------------------------------------- */
 export const useCurrentStatus = () =>
   useQuery({
@@ -31,9 +33,7 @@ export const useCurrentStatus = () =>
  * Tahmin gönder
  * Kullanıcının tahminini backend'e gönderir.
  * Tahmin gönderildiğinde status cache’ini invalid eder.
- * @param {Object} params
- * @param {number} params.lat - Latitude bilgisi
- * @param {number} params.lng - Longitude bilgisi
+ * Girdi olarak: { lat, lng } alır.
  * --------------------------------------------------------------------- */
 export const useGuess = () => {
   const qc = useQueryClient();

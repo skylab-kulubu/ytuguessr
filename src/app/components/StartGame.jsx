@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
-import { startGame, getStatus } from "../../lib/gameService";
+import { useStartGame } from "../../lib/hooks/useGame";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2, X, ChevronUp, TriangleAlert } from "lucide-react";
 
@@ -19,7 +18,7 @@ export default function StartGame() {
   const [error, setError] = useState("");
   const [isSchoolMail, setIsSchoolMail] = useState(false);
   const router = useRouter();
-  const queryClient = useQueryClient();
+  const startMut = useStartGame();
 
   useEffect(() => {
     setIsSchoolMail(isValidMail(mail));
@@ -30,13 +29,11 @@ export default function StartGame() {
     setError(null);
     try {
       setLoading(true);
-      await startGame({
+      await startMut.mutateAsync({
         school_mail: mail,
         show_name: true,
         again: false,
       });
-      await queryClient.invalidateQueries({ queryKey: ["status"] });
-      await queryClient.fetchQuery({ queryKey: ["status"], queryFn: getStatus });
       router.push("/game");
     } catch (error) {
       const msg = error?.response?.data?.detail || "Oyun başlatılamadı.";
@@ -64,7 +61,7 @@ export default function StartGame() {
               className=" w-full bg-transparent text-white placeholder-white/40 pl-4 pr-12 py-3 rounded-xl outline-none"
             />
 
-            <button type="submit" className={`absolute right-1 top-1/2 -translate-y-1/2 text-white p-3 rounded-lg ${error ? "bg-red-500/70 disabled" : loading ? "bg-violet-300 disabled" : isSchoolMail ? "bg-indigo-500" : "bg-white/10 disabled"}`}> 
+            <button type="submit" className={`absolute right-1 top-1/2 -translate-y-1/2 text-white p-3 rounded-lg ${error ? "bg-red-500/70 disabled" : loading ? "bg-indigo-400 disabled" : isSchoolMail ? "bg-indigo-500" : "bg-white/10 disabled"}`}> 
               <AnimatePresence mode="wait">
                 <motion.div key={loading ? "loading" : error ? "error" : "default"}
                 initial={{ y: 20, opacity:0}}

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 
+{/* ---- Sayı Artma Animasyonu ---- */}
 export function CountUp({ number, active }) {
     const count = useMotionValue(0);
     const rounded = useTransform(count, Math.round);
@@ -19,6 +20,7 @@ export function CountUp({ number, active }) {
     return <motion.span>{rounded}</motion.span>;
 }
 
+{/* ---- Ayıraç ---- */}
 export function Seperator() {
     return (
         <motion.div className="flex items-center justify-center mb-8"

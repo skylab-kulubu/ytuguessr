@@ -4,8 +4,6 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { formatDistance } from "../utils";
 
 export const useHandleQuestion = ({ status, nextMut, guessMut, safeNext, safeGuess }) => {
-
-  /* LOCAL STATE ------------------------------------------------------------------ */
   const [question, setQuestion] = useState(null);
   const [remaining, setRemaining] = useState(0);
   const [guess, setGuess] = useState(null);
@@ -20,11 +18,10 @@ export const useHandleQuestion = ({ status, nextMut, guessMut, safeNext, safeGue
   return null;
 }, [guessMut.isSuccess, guessMut.data]);
 
-  /* REFS FOR AUTO GUESS ------------------------------------------------------------------ */
   const autoSentRef = useRef(false);
   const prevRemainingRef = useRef(remaining);
 
-  /* QUESTION HANDLING ------------------------------------------------------------------ */
+ /* ------ Soru Verisini Kullanma ------ */
   useEffect(() => { // İlk yüklemede ya da question state'i boşken yeni soru çek
     if (!status || status.game_over || nextMut.isPending) return;
     if (!question) {
@@ -50,8 +47,8 @@ export const useHandleQuestion = ({ status, nextMut, guessMut, safeNext, safeGue
     return () => clearInterval(id);
   }, [question]);
 
-  /* OTOMATİK 0-TAHMİN ------------------------------------------------------------------ */
-  useEffect(() => { // Soru her değiştiğinde bayrakları sıfırla
+  /* ------ Otomatik 0 Tahmini ------ */
+  useEffect(() => {
     autoSentRef.current = false;
     prevRemainingRef.current = remaining;
   }, [question?.image_url]);

@@ -29,9 +29,7 @@ function GameCore() {
   const [showMap, setShowMap] = useState(false);
 
   useEffect(() => {
-    if (
-      statusQuery.isFetched && !statusQuery.isFetching && status && status.has_active_game === false && !guessMut.isSuccess
-    ) {
+    if ( statusQuery.isFetched && !statusQuery.isFetching && status && status.has_active_game === false && !guessMut.isSuccess) {
       router.push("/");
     }
   }, [statusQuery.isFetched, statusQuery.isFetching, status, router, guessMut.isSuccess]);

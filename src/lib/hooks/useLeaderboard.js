@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { getLeaderboard } from "../gameService"; 
+import { getLeaderboard } from "../api"; 
 
 export function useLeaderboard(page = 1) {
   const query = useQuery({
@@ -27,9 +27,5 @@ export function useLeaderboard(page = 1) {
 
   const topThree = formatted?.entries.slice(0, 3);
 
-  return {
-    ...query,
-    formatted,
-    topThree,
-  };
+  return { ...query, formatted, topThree };
 }

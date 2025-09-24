@@ -1,13 +1,12 @@
 import React from "react";
-import Header from "./Header";
 import loadingAnimation from "../../../public/lottie/loading.json";
 import Lottie from "lottie-react";
 import { TriangleAlert } from 'lucide-react';
 
+{/* ---- Ana Yükleniyor Ekranı ---- */}
 const LoadingScreen = () => {
   return (
     <div className="min-h-screen bg-[#1B1740] text-white">
-      {/* <Header /> */}
       <div className="flex justify-center items-center pt-24 h-[calc(100vh-6rem)]">
         <Lottie
           animationData={loadingAnimation}
@@ -19,6 +18,7 @@ const LoadingScreen = () => {
   );
 };
 
+{/* ---- Oyun Yükleniyor Ekranı ---- */}
 const GameLoadingScreen = ({ error }) => {
   if (error) {
     return (

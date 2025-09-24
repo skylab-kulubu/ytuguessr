@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Github, Instagram, Globe, MapPin, Trophy, Heart } from "lucide-react";
+import { Github, Instagram, Globe } from "lucide-react";
 
 export default function Footer() {
     const currentYear = new Date().getFullYear();
@@ -17,12 +17,6 @@ export default function Footer() {
         { name: "Hakkımızda", href: "#" },
         { name: "Kullanım Şartları", href: "#" },
         { name: "Gizlilik Politikası", href: "#" },
-    ];
-
-    const gameStats = [
-        { icon: MapPin, number: "45+", text: "Konum" },
-        { icon: Trophy, number: "8.5K+", text: "Oyun" },
-        { icon: Heart, number: "1.2K+", text: "Oyuncu" },
     ];
 
     return (
@@ -79,7 +73,7 @@ export default function Footer() {
 
                 </div>
 
-                {/* Bottom section */}
+                {/* ---- Yapımcılar ---- */}
                 <motion.div className="pt-8 border-t border-violet-500/20"
                     initial={{ y: 20, opacity: 0 }}
                     whileInView={{ y: 0, opacity: 1 }}

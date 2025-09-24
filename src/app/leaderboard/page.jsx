@@ -37,9 +37,9 @@ export default function LeaderboardPage() {
 
     return (
         <div className="min-h-screen text-white">
-            <Header />
 
-            {/* Main Content */}
+            <Header />
+            
             <div className="p-6 max-w-4xl mx-auto space-y-6 pt-24 min-h-screen">
                 <motion.div className="text-center mb-8"
                     initial={{ y: 30, opacity: 0 }}
