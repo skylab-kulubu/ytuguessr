@@ -5,23 +5,17 @@ import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { Suspense, useState, useEffect } from "react";
 
-function CylPanorama({ imageUrl, onError }) {
-  try {
-    const tex = useLoader(THREE.TextureLoader, imageUrl);
-    tex.wrapS = THREE.ClampToEdgeWrapping;   // sağ-sol uçlar birleşsin
-    tex.wrapT = THREE.ClampToEdgeWrapping;   // üst-alt kesilmesin
-
-    return (
-      <mesh rotation={[0, Math.PI, 0]}>
-        {/* radius, height, radialSegs, heightSegs, openEnded=true  */}
-        <cylinderGeometry args={[500, 500, 350, 128, 1, true]} />
-        <meshBasicMaterial map={tex} side={THREE.BackSide} />
-      </mesh>
-    );
-  } catch (error) {
-    onError();
-    return null;
-  }
+function CylPanorama({ imageUrl }) {
+  const tex = useLoader(THREE.TextureLoader, imageUrl);
+  tex.wrapS = THREE.ClampToEdgeWrapping;   // sağ-sol uçlar birleşsin
+  tex.wrapT = THREE.ClampToEdgeWrapping;   // üst-alt kesilmesin
+  return (
+    <mesh rotation={[0, Math.PI, 0]}>
+      {/* radius, height, radialSegs, heightSegs, openEnded=true  */}
+      <cylinderGeometry args={[500, 500, 350, 128, 1, true]} />
+      <meshBasicMaterial map={tex} side={THREE.BackSide} />
+    </mesh>
+  );
 }
 
 
