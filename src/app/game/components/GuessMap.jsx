@@ -138,19 +138,19 @@ export default function GuessMap({
             initial={{ y: "100%" }}
             animate={{
               y: 0,
-              height: isFullScreen ? "100vh" : "45vh",
+              height: isFullScreen ? "100dvh" : "45dvh",
             }}
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: 'spring', stiffness: 260, damping: 30 }}
             className={`absolute inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-zinc-100 backdrop-blur-lg shadow-2xl ${isFullScreen
-              ? 'h-screen rounded-none'
-              : 'h-[45vh] rounded-t-3xl'
+              ? 'h-[100dvh] rounded-none'
+              : 'h-[45dvh] rounded-t-3xl'
               }`}
           >
             {/* Swipe Handle */}
             <div
               {...swipeHandlers}
-              className={`absolute top-0 left-0 right-0 h-6 flex items-center justify-center cursor-grab active:cursor-grabbing z-40 ${isFullScreen ? 'bg-zinc-100/90 backdrop-blur-sm' : ''
+              className={`absolute left-0 right-0 h-6 flex items-center justify-center cursor-grab active:cursor-grabbing z-40 ${isFullScreen ? 'bg-zinc-100/90 backdrop-blur-sm top-[env(safe-area-inset-top)]' : 'top-0'
                 }`}
             >
               <div className="w-12 h-1 bg-gray-400 rounded-full" />
@@ -167,7 +167,7 @@ export default function GuessMap({
               doubleClickZoom={false}
               scrollWheelZoom
               className={`relative w-full ${isFullScreen
-                ? 'h-[calc(100vh-24px)] mt-6 rounded-none'
+                ? 'h-[calc(100dvh-env(safe-area-inset-top)-24px)] mt-[calc(env(safe-area-inset-top)+24px)] rounded-none'
                 : 'h-[calc(100%-24px)] mt-6 rounded-t-3xl'
                 }`}
               key={isFullScreen ? 'fullscreen' : 'normal'}

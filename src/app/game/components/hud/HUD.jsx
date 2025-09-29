@@ -23,7 +23,10 @@ export default function HUD({ secondsLeft, totalSeconds = 60 }) {
   }, []);
 
   return (
-    <div className="fixed top-8 left-1/2 -translate-x-1/2 z-10">
+    <div
+      className="fixed left-1/2 -translate-x-1/2 z-10 top-8"
+      style={{ top: "calc(env(safe-area-inset-top, 0px) + 2rem)" }}
+    >
       <div className="relative inline-flex items-center justify-center z-40">
         <ProgressBar
           width={dims.width}

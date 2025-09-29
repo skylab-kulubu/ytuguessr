@@ -49,14 +49,10 @@ function GameCore() {
     return <GameLoadingScreen />;
   }
 
-  return (
-    <div className="relative h-screen w-screen overflow-hidden bg-black text-white">
+    return (
+    <div className="relative h-[100dvh] w-screen overflow-hidden bg-black text-white">
       {question?.image_url && !status.game_over && (
         <PanoramaViewer key={question.image_url} imageUrl={question.image_url} />
-      )}
-
-      {!status.game_over && (
-        <HUD secondsLeft={remaining} />
       )}
 
       <GuessMap
@@ -67,6 +63,10 @@ function GameCore() {
         guessSelected={!!guess}
         showMap={showMap}
       />
+
+      {!status.game_over && (
+        <HUD secondsLeft={remaining} />
+      )}
 
       {guessMut.isSuccess && (
         <ResultModal
