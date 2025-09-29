@@ -59,8 +59,8 @@ export default function Hero() {
 
         <div className="w-full -mt-1 h-20 bg-gradient-to-b from-[#897fa6] via-[#897fa6] to-[#1B1740]" />
 
-        <div className="w-full flex flex-col items-center justify-center min-h-[80vh] px-4 py-12">
-          <motion.h2 className="text-3xl md:text-4xl font-bold tracking-tight"
+        <div className="w-full flex flex-col items-center justify-center min-h-[80vh] py-12">
+          <motion.h2 className="text-3xl md:text-4xl font-bold tracking-tight px-4"
             initial={{ y: 18, opacity: 0 }}
             whileInView={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.7, ease: "easeOut", delay: 0.05 }}

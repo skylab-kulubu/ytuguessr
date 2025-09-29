@@ -66,15 +66,7 @@ const OuterMask = () => {
   );
 };
 
-/* === Ana bileşen === */
-export default function GuessMap({
-  onPick,
-  marker,
-  onToggleMap,
-  onConfirm,
-  guessSelected,
-  showMap,
-}) {
+export default function GuessMap({ onPick, marker, onToggleMap, onConfirm, guessSelected, showMap }) {
   const [isFullScreen, setIsFullScreen] = useState(false);
 
   // Harita kapandığında tam ekran state'ini sıfırla
@@ -82,6 +74,21 @@ export default function GuessMap({
     if (!showMap) {
       setIsFullScreen(false);
     }
+  }, [showMap]);
+
+  // Sayfa yenilemeyi engelleme
+  useEffect(() => {
+    if (!showMap) return;
+    const prevOverflow = document.body.style.overflow;
+    const prevOverscroll = document.body.style.overscrollBehavior;
+
+    document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "contain";
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.overscrollBehavior = prevOverscroll;
+    };
   }, [showMap]);
 
   const swipeHandlers = useSwipeable({
@@ -142,7 +149,7 @@ export default function GuessMap({
             }}
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: 'spring', stiffness: 260, damping: 30 }}
-            className={`absolute inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-zinc-100 backdrop-blur-lg shadow-2xl ${isFullScreen
+            className={`absolute inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-zinc-100 backdrop-blur-lg shadow-2xl overscroll-y-contain ${isFullScreen
               ? 'h-[100dvh] rounded-none'
               : 'h-[45dvh] rounded-t-3xl'
               }`}
@@ -150,10 +157,10 @@ export default function GuessMap({
             {/* Swipe Handle */}
             <div
               {...swipeHandlers}
-              className={`absolute left-0 right-0 h-6 flex items-center justify-center cursor-grab active:cursor-grabbing z-40 ${isFullScreen ? 'bg-zinc-100/90 backdrop-blur-sm top-[env(safe-area-inset-top)]' : 'top-0'
+              className={`absolute left-0 right-0 h-8 flex items-center justify-center cursor-grab active:cursor-grabbing z-40 select-none touch-none ${isFullScreen ? 'bg-zinc-100/90 backdrop-blur-sm top-[env(safe-area-inset-top)]' : 'top-0'
                 }`}
             >
-              <div className="w-12 h-1 bg-gray-400 rounded-full" />
+              <div className="w-12 h-1 mb-2 bg-gray-400 rounded-full" />
             </div>
 
             {/* Map */}

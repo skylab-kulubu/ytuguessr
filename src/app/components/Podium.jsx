@@ -31,7 +31,7 @@ export default function Podium() {
                     animate={hasEntered ? { y: 0, opacity: 1 } : undefined}
                     transition={{ duration: 1.2, delay: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
                 >
-                    <motion.div className="absolute -top-12 left-2 right-0 text-center -z-10"
+                    <motion.div className="absolute -top-12 left-0 right-0 text-center"
                         initial={{ y: -20, opacity: 0 }}
                         animate={hasEntered ? { y: 0, opacity: 1 } : undefined}
                         transition={{ duration: 0.6, delay: 1.4 }}
@@ -121,7 +121,7 @@ export default function Podium() {
                     animate={hasEntered ? { y: 0, opacity: 1 } : undefined}
                     transition={{ duration: 1.0, delay: 1.2, ease: [0.25, 0.46, 0.45, 0.94] }}
                 >
-                    <motion.div className="absolute -top-12 -left-2 right-0 text-center -z-10"
+                    <motion.div className="absolute -top-12 left-0 right-0 text-center"
                         initial={{ y: -20, opacity: 0 }}
                         animate={hasEntered ? { y: 0, opacity: 1 } : undefined}
                         transition={{ duration: 0.6, delay: 1.8 }}
