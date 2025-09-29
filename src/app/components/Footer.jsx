@@ -34,13 +34,13 @@ export default function Footer() {
                     >
                         <div className="flex items-center justify-center mb-4">
                             <img src="/skylab.png" alt="Skylab Logo" className="h-12 justify-center items-center" />
-                            <span className="text-[#EADAFF] mx-3 self-center mb-2 font-bold text-2xl">SKYLAB | WEBLAB</span>
+                            <span className="text-[#EADAFF] mx-3 self-center mb-2 font-bold text-2xl">SKY LAB | WEBLAB</span>
 
                         </div>
                         <div className="space-y-4 justify-center grid grid-cols-2">
                             <div className="text-sm text-gray-300 flex flex-col items-center">
                                 <p className="mb-1">Yıldız Teknik Üniversitesi</p>
-                                <p className="text-gray-400">SkyLab Kulübü | Web Ekibi</p>
+                                <p className="text-gray-400 text-[11px]">SKY LAB Kulübü | Web Ekibi</p>
                             </div>
 
                             {/* Social links */}
