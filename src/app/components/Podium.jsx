@@ -5,6 +5,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { CountUp } from "./utils";
+import { formatNameForPodium } from "../../lib/utils";
 import { ArrowRight } from "lucide-react";
 
 export default function Podium() {
@@ -30,13 +31,13 @@ export default function Podium() {
                     animate={hasEntered ? { y: 0, opacity: 1 } : undefined}
                     transition={{ duration: 1.2, delay: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
                 >
-                    <motion.div className="absolute -top-12 left-2 right-0 text-center"
+                    <motion.div className="absolute -top-12 left-2 right-0 text-center -z-10"
                         initial={{ y: -20, opacity: 0 }}
                         animate={hasEntered ? { y: 0, opacity: 1 } : undefined}
                         transition={{ duration: 0.6, delay: 1.4 }}
                     >
-                        <span className="text-sm font-medium text-[#d0d1d8] bg-[#d0d1d8]/20 px-2 py-1 rounded border border-[#d0d1d8]/30">
-                            {topThree[1]?.name}
+                        <span className="inline-block max-w-[130px] truncate text-sm font-medium text-[#d0d1d8] bg-[#d0d1d8]/20 px-2 py-1 rounded border border-[#d0d1d8]/30">
+                            {formatNameForPodium(topThree[1]?.name)}
                         </span>
                     </motion.div>
                     <motion.div className={`absolute -top-3 left-0 right-0 h-3 bg-gradient-to-br ${isHome ? "from-[#3b327f] to-[#504696]" : "from-[#565187] to-[#696696]"}`}
@@ -75,13 +76,13 @@ export default function Podium() {
                     animate={hasEntered ? { y: 0, opacity: 1 } : undefined}
                     transition={{ duration: 1.5, delay: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
                 >
-                    <motion.div className="absolute -top-12 left-0 right-0 text-center"
+                    <motion.div className="absolute -top-12 -left-1 right-0 text-center"
                         initial={{ y: -20, opacity: 0 }}
                         animate={hasEntered ? { y: 0, opacity: 1 } : undefined}
                         transition={{ duration: 0.6, delay: 1.2 }}
                     >
-                        <span className="text-sm font-medium text-[#ebb912] bg-[#ebb912]/20 px-2 py-1 rounded border border-[#ebb912]/30">
-                            {topThree[0]?.name}
+                        <span className="inline-block max-w-[180px] truncate text-sm font-medium text-[#ebb912] bg-[#ebb912]/20 px-2 py-1 rounded border border-[#ebb912]/30">
+                            {formatNameForPodium(topThree[0]?.name)}
                         </span>
                     </motion.div>
                     <motion.div className={`absolute -top-3 left-0 right-0 h-3 bg-gradient-to-b ${isHome ? "from-[#4e4497] to-[#5d53a9]" : "from-[#696696] to-[#7d7aab]"}`}
@@ -120,13 +121,13 @@ export default function Podium() {
                     animate={hasEntered ? { y: 0, opacity: 1 } : undefined}
                     transition={{ duration: 1.0, delay: 1.2, ease: [0.25, 0.46, 0.45, 0.94] }}
                 >
-                    <motion.div className="absolute -top-12 left-0 right-2 text-center"
+                    <motion.div className="absolute -top-12 -left-2 right-0 text-center -z-10"
                         initial={{ y: -20, opacity: 0 }}
                         animate={hasEntered ? { y: 0, opacity: 1 } : undefined}
                         transition={{ duration: 0.6, delay: 1.8 }}
                     >
-                        <span className="text-sm font-medium text-[#e8882e] bg-[#e8882e]/20 px-2 py-1 rounded border border-[#e8882e]/30">
-                            {topThree[2]?.name}
+                        <span className="inline-block max-w-[130px] truncate text-sm font-medium text-[#e8882e] bg-[#e8882e]/20 px-2 py-1 rounded border border-[#e8882e]/30">
+                            {formatNameForPodium(topThree[2]?.name)}
                         </span>
                     </motion.div>
                     <motion.div className={`absolute -top-3 left-0 right-0 h-3 bg-gradient-to-bl ${isHome ? "from-[#3b327f] to-[#504696]" : "from-[#565187] to-[#696696]"}`}

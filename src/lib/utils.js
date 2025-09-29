@@ -17,3 +17,16 @@
 
     return `${Math.round(distance)} m`;
   };
+
+  export function formatNameForPodium(fullName) {
+    if (!fullName || fullName === "-") return fullName;
+    
+    const nameParts = fullName.trim().split(' ');
+    
+    if (nameParts.length === 1) return nameParts[0];
+    
+    const firstName = nameParts[0];
+    const lastNameInitial = nameParts[nameParts.length - 1].charAt(0).toUpperCase();
+    
+    return `${firstName} ${lastNameInitial}.`;
+  };
