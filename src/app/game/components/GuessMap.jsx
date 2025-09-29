@@ -76,21 +76,6 @@ export default function GuessMap({ onPick, marker, onToggleMap, onConfirm, guess
     }
   }, [showMap]);
 
-  // Sayfa yenilemeyi engelleme
-  useEffect(() => {
-    if (!showMap) return;
-    const prevOverflow = document.body.style.overflow;
-    const prevOverscroll = document.body.style.overscrollBehavior;
-
-    document.body.style.overflow = "hidden";
-    document.body.style.overscrollBehavior = "contain";
-
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      document.body.style.overscrollBehavior = prevOverscroll;
-    };
-  }, [showMap]);
-
   const swipeHandlers = useSwipeable({
     onSwipedDown: (eventData) => {
       if (eventData.deltaY > 50) {
