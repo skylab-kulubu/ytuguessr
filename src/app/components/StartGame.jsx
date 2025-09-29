@@ -90,7 +90,7 @@ export default function StartGame() {
         </div>
 
         <p className="text-[10px] text-white/50 leading-relaxed">
-          Oyunu oynadığınızda KVKK koşullarını kabul etmiş olursunuz.
+          Oyunu oynadığınızda <a href="https://skyl.app/kvkk-metni" rel="noopener noreferrer" target="_blank" className="opacity-60">KVKK koşullarını</a> kabul etmiş olursunuz.
         </p>
         
       </form>
