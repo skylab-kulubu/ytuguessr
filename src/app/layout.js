@@ -6,7 +6,6 @@ export const metadata = {
   title: 'YTUGuessr',
   description: 'Yıldız Teknik Üniversitesi kampüsünde konum tahmin etme oyunu.',
   applicationName: 'YTUGuessr',
-  themeColor: '#1B1740',
   icons: {
     icon: '/marker-red.svg',
     apple: '/marker-red.svg',
@@ -18,6 +17,7 @@ export const viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
+  themeColor: '#1B1740',
 };
 
 export default function RootLayout({ children }) {
