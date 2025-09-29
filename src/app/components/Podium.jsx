@@ -76,7 +76,7 @@ export default function Podium() {
                     animate={hasEntered ? { y: 0, opacity: 1 } : undefined}
                     transition={{ duration: 1.5, delay: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
                 >
-                    <motion.div className="absolute -top-12 -left-1 right-0 text-center"
+                    <motion.div className="absolute -top-12 left-1/2 transform -translate-x-1/2 text-center"
                         initial={{ y: -20, opacity: 0 }}
                         animate={hasEntered ? { y: 0, opacity: 1 } : undefined}
                         transition={{ duration: 0.6, delay: 1.2 }}
