@@ -17,6 +17,7 @@ class Settings:
     ALPHA = float(os.getenv("ALPHA_COEFFICIENT"))
     BETA = float(os.getenv("BETA_COEFFICIENT"))
     LEADERBOARD_PAGE_SIZE = int(os.getenv("LEADERBOARD_PAGE_SIZE"))
+    DOMAIN = os.getenv("DOMAIN")
 
     @property
     def DATABASE_URL(self):
