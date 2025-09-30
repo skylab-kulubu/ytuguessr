@@ -4,7 +4,7 @@ from typing import List
 
 from core.database import SessionLocal
 from core.utils import verify_admin_key
-from models.models import Location
+from models.models import Location, Guess, User
 from schemas.admin import LocationDetail, LocationCreate, LocationUpdate
 
 router = APIRouter(dependencies=[Depends(verify_admin_key)])
@@ -50,3 +50,14 @@ def delete_location(location_id: int, db: Session = Depends(get_db)):
     db.delete(location)
     db.commit()
     return {"message": "Konum başarıyla silindi."}
+
+@router.delete("/reset")
+def reset_all_data(db: Session = Depends(get_db)):
+    try:
+        db.query(Guess).delete()
+        db.query(User).delete()
+        db.commit()
+        return {"message": "Tüm kullanıcılar ve tahminler başarıyla silindi."}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Veriler silinirken hata oluştu: {str(e)}")
