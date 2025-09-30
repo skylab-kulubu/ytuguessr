@@ -220,15 +220,17 @@ def get_summary(request: Request, db: Session = Depends(get_db)):
 
     details = []
     for g in guesses:
+        clamped_time = min(g.time_taken, settings.QUESTION_DURATION)
+        
         detail = {
             "distance_km": g.distance,
-            "time_sec": g.time_taken,
+            "time_sec": clamped_time,
             "score": g.score,
         }
         details.append(detail)
         if g.distance != -1:
             total_distance += g.distance
-        total_duration += g.time_taken
+        total_duration += clamped_time
         total_score += g.score
 
     return {
