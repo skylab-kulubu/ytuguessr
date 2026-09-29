@@ -1,0 +1,8 @@
+# İmaja girmemeli: yerel sırlar ve derleme dışı dosyalar.
+.env
+.env.*
+.git
+.github
+__pycache__/
+*.pyc
+game.db
