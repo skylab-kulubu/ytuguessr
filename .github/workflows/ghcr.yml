@@ -1,0 +1,94 @@
+name: GHCR
+
+# PR: build the image, boot it and probe HTTP (no push).
+# frontend push: ghcr.io/skylab-kulubu/ytuguessr-frontend:latest + :<sha> (no deploy).
+# frontend-production push: :production + :<sha>, then the Dokploy deploy hook (if set).
+# The backend has its own workflow on the backend branch; its hook secret is DOKPLOY_DEPLOY_HOOK, this one's
+# is DOKPLOY_FRONTEND_DEPLOY_HOOK.
+on:
+  pull_request:
+    branches: [frontend, frontend-production]
+  push:
+    branches: [frontend, frontend-production]
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/skylab-kulubu/ytuguessr-frontend
+      # Baked into the client bundle at build time (NEXT_PUBLIC_*). src/lib/api.js appends /game/..., so the
+      # value carries the /api/ prefix, exactly as on the Vercel build this image replaces.
+      API_URL: https://api.guessr.yildizskylab.com/api/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          platforms: linux/amd64
+          tags: ytuguessr-frontend:ci
+          build-args: NEXT_PUBLIC_API_URL=${{ env.API_URL }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Boot and probe HTTP
+        run: |
+          # The bundle must call the production API, never the local-dev fallback.
+          docker run --rm --entrypoint sh ytuguessr-frontend:ci -c \
+            "grep -rqF '$API_URL' .next/static/chunks && ! grep -rqF 'localhost:8000' .next/static/chunks" \
+            || { echo "bundle does not point to $API_URL"; exit 1; }
+          docker run -d --name app -p 3000:3000 ytuguessr-frontend:ci
+          for _ in $(seq 1 60); do
+            code=$(curl -s -o page.html -w '%{http_code}' http://localhost:3000/ || true)
+            if [ "$code" = 200 ] && grep -q '<title>YTUGuessr</title>' page.html; then
+              echo "GET / -> 200, title YTUGuessr"
+              for path in /leaderboard /game /summary; do
+                c=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000$path")
+                echo "GET $path -> $c"
+                [ "$c" = 200 ] || { docker logs app; exit 1; }
+              done
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "GET / never returned 200 with the YTUGuessr title (last: $code)"
+          docker logs app
+          exit 1
+      - uses: docker/login-action@v3
+        if: github.event_name == 'push'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push the probed image to GHCR
+        if: github.event_name == 'push'
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [ "$REF_NAME" = frontend-production ]; then
+            tags="production $SHA"
+          else
+            tags="latest $SHA"
+          fi
+          for tag in $tags; do
+            docker tag ytuguessr-frontend:ci "$IMAGE:$tag"
+            docker push "$IMAGE:$tag"
+          done
+      - name: Notify Dokploy
+        if: github.event_name == 'push' && github.ref == 'refs/heads/frontend-production'
+        env:
+          HOOK: ${{ secrets.DOKPLOY_FRONTEND_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "DOKPLOY_FRONTEND_DEPLOY_HOOK unset; skip"
+            exit 0
+          fi
+          curl -fsS -X POST "$HOOK"
