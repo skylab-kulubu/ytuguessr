@@ -80,6 +80,9 @@ def test_the_event_end_is_a_date_in_turkey_or_a_time_with_its_offset_or_ignored(
     with pytest.raises(RetentionConfigError, match="RETENTION_SWEEP_MAX_ROWS"):
         RetentionSettings.from_env({"RETENTION_SWEEP_MAX_ROWS": "0"})
     assert RetentionSettings.from_env({}) == RetentionSettings()
+    assert RetentionSettings.from_env({"EVENT_ENDED_AT": "dün"}).event_end_invalid
+    assert not RetentionSettings.from_env({"EVENT_ENDED_AT": "2025-05-18"}).event_end_invalid
+    assert not RetentionSettings.from_env({"EVENT_ENDED_AT": " "}).event_end_invalid
 
 
 # Rules
@@ -320,3 +323,21 @@ def test_created_at_is_added_to_an_existing_table_with_the_time_it_is_added(engi
     # So the row is not old: nothing is due.
     result = sweep.run(engine, settings("dry-run", None), "manual", now=NOW)
     assert [r.matched for r in result.rules] == [0, 0]
+
+
+def test_a_bad_event_end_stops_apply_but_not_the_dry_run(engine):
+    player = add_game(engine, "bozuk.tarih@std.yildiz.edu.tr", "203.0.113.12", ago(400))
+    bad_apply = RetentionSettings.from_env({"RETENTION_SWEEP_MODE": "apply", "EVENT_ENDED_AT": "18.05.2025"})
+    bad_dry_run = RetentionSettings.from_env({"EVENT_ENDED_AT": "18.05.2025"})
+
+    dry_run = sweep.run(engine, bad_dry_run, "manual", now=NOW)
+    apply = sweep.run(engine, bad_apply, "schedule", now=NOW)
+
+    assert [(r.status, r.matched) for r in dry_run.rules] == [("dry_run", 1), ("dry_run", 1)]
+    assert apply.status == "config_error"
+    assert [(r.status, r.matched, r.changed) for r in apply.rules] == [("config_error", 1, 0), ("config_error", 1, 0)]
+    assert dict(row(engine, player))["email"] == "bozuk.tarih@std.yildiz.edu.tr"
+    assert row(engine, player)["ip_address"] == "203.0.113.12"
+    assert scalar(engine, "SELECT error_code FROM retention_runs WHERE mode = 'apply'") == "event_ended_at_invalid"
+    # Once a day, not every hour.
+    assert sweep.run(engine, bad_apply, "schedule", now=NOW).outcome == "not_due"

@@ -13,6 +13,8 @@ writes a receipt without personal data (retention_runs, retention_run_rules).
   timeout, and never more rows than its count found.
 - The brake: a rule that would change more than RETENTION_SWEEP_MAX_ROWS rows is refused
   (apply changes nothing for it; the dry run says would_refuse_large).
+- An EVENT_ENDED_AT that is set but not a date: apply counts and changes nothing (rules and
+  run config_error, once a day); the dry run counts without it.
 - Periods slide from each game's own time (retention/rules.py); EVENT_ENDED_AT, when set,
   counts too if it is later.
 """
@@ -122,7 +124,7 @@ def _is_due(engine, settings: RetentionSettings, now: datetime) -> bool:
         recent = conn.execute(
             text(
                 "SELECT count(*) FROM retention_runs WHERE triggered_by = 'schedule' AND mode = :mode "
-                "AND status IN ('ok', 'partial') AND started_at > :since "
+                "AND status IN ('ok', 'partial', 'config_error') AND started_at > :since "
                 "AND event_ended_at IS NOT DISTINCT FROM CAST(:event_end AS timestamptz)"
             ),
             {"mode": settings.mode, "since": now - DUE_AFTER, "event_end": settings.event_ended_at},
@@ -154,7 +156,9 @@ def _run_locked(engine, settings: RetentionSettings, trigger: str, now: datetime
             result = _run_rule(engine, rule, settings, params)
             results.append(result)
             _record_rule(engine, run_id, rule, result, settings.mode)
-            if result.status in ("failed", "refused_large"):
+            if result.status == "config_error":
+                status, code = "config_error", "event_ended_at_invalid"
+            elif result.status in ("failed", "refused_large") and status != "config_error":
                 status = "partial"
     except Exception as exc:  # noqa: BLE001
         status = "failed"
@@ -180,7 +184,9 @@ def _run_rule(engine, rule, settings: RetentionSettings, params: dict) -> RuleRe
         with engine.begin() as conn:
             _statement_timeout(conn)
             result.matched = conn.execute(text(rule.count_sql()), params).scalar() or 0
-        if result.matched > settings.max_rows:
+        if settings.mode == "apply" and settings.event_end_invalid:
+            result.status = "config_error"
+        elif result.matched > settings.max_rows:
             result.status = "refused_large" if settings.mode == "apply" else "would_refuse_large"
         elif settings.mode == "dry-run":
             result.status = "dry_run"

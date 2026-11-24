@@ -21,7 +21,7 @@ Skorlar, tahminler ve konumlar silinmez; lider tablosu anonimleşmiş satırda `
 | Değişken | Varsayılan | Açıklama |
 |---|---|---|
 | `RETENTION_SWEEP_MODE` | `dry-run` | `off` iş yok; `dry-run` her kural için `apply`'ın değiştireceği satırları sayar, hiçbir şeyi değiştirmez; `apply` değiştirir. Başka bir değerde uygulama açılmaz |
-| `EVENT_ENDED_AT` | | İsteğe bağlı. `2025-05-18` (o günün sonu, Türkiye saati) ya da `2025-05-18T22:00:00+03:00`. Tarih olmayan değer loga yazılır ve yok sayılır |
+| `EVENT_ENDED_AT` | | İsteğe bağlı. `2025-05-18` (o günün sonu, Türkiye saati) ya da `2025-05-18T22:00:00+03:00`. Tarih olmayan değer loga yazılır; uygulama açılır, dry-run onsuz sayar, `apply` hiçbir şeyi değiştirmez (kural ve koşu durumu `config_error`, kod `event_ended_at_invalid`, günde bir kez) |
 | `RETENTION_SWEEP_MAX_ROWS` | `50000` | Fren: bir kural bundan çok satır değiştirecekse o gün reddedilir (`refused_large`; dry-run'da `would_refuse_large`) |
 | `RETENTION_SWEEP_BATCH_SIZE` | `500` | `apply`'da tek işlemde değiştirilen en çok satır (`account_email` adresi bütün alır; tek başına daha çok satırı olan adres kendi partisinde) |
 

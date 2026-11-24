@@ -34,7 +34,8 @@ def parse_mode(value: Optional[str]) -> str:
 def parse_event_end(value: Optional[str]) -> Optional[datetime]:
     """'2025-05-18' (the end of that day in Turkey) or '2025-05-18T22:00:00+03:00'; blank is None.
 
-    Optional: anything else is logged and counts as unset, the application still starts."""
+    Optional: anything else is logged and counts as unset, the application still starts
+    (RetentionSettings.event_end_invalid: apply then changes nothing)."""
     if value is None or not value.strip():
         return None
     text = value.strip()
@@ -75,13 +76,19 @@ class RetentionSettings:
     max_rows: int = 50000
     # Rows per statement in apply.
     batch_size: int = 500
+    # EVENT_ENDED_AT was set but is not a date: the application still starts, the dry run counts
+    # without it, and apply changes nothing (config_error): a typo must not shorten a period.
+    event_end_invalid: bool = False
 
     @classmethod
     def from_env(cls, env=None) -> "RetentionSettings":
         env = os.environ if env is None else env
+        raw_event_end = env.get(EVENT_END_ENV)
+        event_ended_at = parse_event_end(raw_event_end)
         return cls(
             mode=parse_mode(env.get(MODE_ENV)),
-            event_ended_at=parse_event_end(env.get(EVENT_END_ENV)),
+            event_ended_at=event_ended_at,
+            event_end_invalid=bool(raw_event_end and raw_event_end.strip()) and event_ended_at is None,
             max_rows=_positive(MAX_ROWS_ENV, env.get(MAX_ROWS_ENV), 50000),
             batch_size=_positive(BATCH_SIZE_ENV, env.get(BATCH_SIZE_ENV), 500),
         )

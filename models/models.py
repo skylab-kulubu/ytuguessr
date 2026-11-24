@@ -45,7 +45,7 @@ class RetentionRun(Base):
     event_ended_at = Column(DateTime(timezone=True), nullable=True)
     started_at = Column(DateTime(timezone=True), nullable=False)
     finished_at = Column(DateTime(timezone=True), nullable=True)
-    status = Column(String(16), nullable=False)  # running, ok, partial, failed, abandoned
+    status = Column(String(16), nullable=False)  # running, ok, partial, failed, abandoned, config_error
     error_code = Column(String(64), nullable=True)  # a SQLSTATE or an exception's class, never its message
 
 
