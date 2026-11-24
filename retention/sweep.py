@@ -8,11 +8,13 @@ writes a receipt without personal data (retention_runs, retention_run_rules).
 - The schedule's run is due when no scheduled run of the same mode and event end ended ok
   or partial in the last 23 hours, read from retention_runs: a restart never makes a run
   due again; switching the mode or EVENT_ENDED_AT does.
-- Apply changes at most batch_size rows (account_email: addresses) per transaction, under
-  a 30-second statement timeout, and stops once it has changed what its count found.
+- Apply changes at most batch_size rows per transaction (account_email: whole addresses up
+  to that many rows; a single address with more rows alone), under a 30-second statement
+  timeout, and never more rows than its count found.
 - The brake: a rule that would change more than RETENTION_SWEEP_MAX_ROWS rows is refused
   (apply changes nothing for it; the dry run says would_refuse_large).
-- Without EVENT_ENDED_AT nothing is counted or changed (no_event_end).
+- Periods slide from each game's own time (retention/rules.py); EVENT_ENDED_AT, when set,
+  counts too if it is later.
 """
 import logging
 import sys
@@ -173,8 +175,6 @@ def _run_locked(engine, settings: RetentionSettings, trigger: str, now: datetime
 
 
 def _run_rule(engine, rule, settings: RetentionSettings, params: dict) -> RuleResult:
-    if settings.event_ended_at is None:
-        return RuleResult(rule.name, "no_event_end")
     result = RuleResult(rule.name, "dry_run", cutoff=params[rule.cutoff])
     try:
         with engine.begin() as conn:
@@ -188,7 +188,7 @@ def _run_rule(engine, rule, settings: RetentionSettings, params: dict) -> RuleRe
             while result.changed < result.matched:
                 limit = min(settings.batch_size, result.matched - result.changed)
                 if rule.action == "anonymize":
-                    changed = _anonymize_batch(engine, rule, params, limit)
+                    changed = _anonymize_batch(engine, rule, params, limit, result.matched - result.changed)
                 else:
                     with engine.begin() as conn:
                         _statement_timeout(conn)
@@ -203,15 +203,29 @@ def _run_rule(engine, rule, settings: RetentionSettings, params: dict) -> RuleRe
     return result
 
 
-def _anonymize_batch(engine, rule, params: dict, limit: int) -> int:
-    """Up to `limit` addresses: every game row of each gets one new player key and its leaderboard name."""
+def _anonymize_batch(engine, rule, params: dict, limit: int, remaining: int) -> int:
+    """Whole addresses, up to `limit` rows (one address with more rows alone, if it fits in
+    `remaining`, what is left of the count): every game row of each gets one new player key and
+    its leaderboard name. Each UPDATE checks the rule again, so an address that started a new
+    game meanwhile is left for later."""
     changed = 0
     with engine.begin() as conn:
         _statement_timeout(conn)
-        emails = conn.execute(
-            text(f"SELECT DISTINCT u.email FROM {rule.from_clause} WHERE {rule.predicate} ORDER BY u.email LIMIT :batch"),
+        due = conn.execute(
+            text(
+                f"SELECT u.email, count(*) FROM {rule.from_clause} WHERE {rule.predicate} "
+                "GROUP BY u.email ORDER BY u.email LIMIT :batch"
+            ),
             {**params, "batch": limit},
-        ).scalars().all()
+        ).all()
+        emails, rows = [], 0
+        for email, count in due:
+            if rows + count > limit and emails:
+                break
+            if rows + count > remaining:
+                break
+            emails.append(email)
+            rows += count
         for email in emails:
             changed += conn.execute(
                 text(

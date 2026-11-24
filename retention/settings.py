@@ -1,3 +1,4 @@
+import logging
 import os
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
@@ -14,6 +15,9 @@ MODES = ("off", "dry-run", "apply")
 TURKEY = timezone(timedelta(hours=3))
 
 
+log = logging.getLogger("guessr.retention")
+
+
 class RetentionConfigError(ValueError):
     """A value the run cannot use: the application does not start."""
 
@@ -28,7 +32,9 @@ def parse_mode(value: Optional[str]) -> str:
 
 
 def parse_event_end(value: Optional[str]) -> Optional[datetime]:
-    """'2025-05-18' (the end of that day in Turkey) or '2025-05-18T22:00:00+03:00'; blank is None."""
+    """'2025-05-18' (the end of that day in Turkey) or '2025-05-18T22:00:00+03:00'; blank is None.
+
+    Optional: anything else is logged and counts as unset, the application still starts."""
     if value is None or not value.strip():
         return None
     text = value.strip()
@@ -40,9 +46,11 @@ def parse_event_end(value: Optional[str]) -> Optional[datetime]:
     except ValueError:
         parsed = None
     if parsed is None or parsed.tzinfo is None:
-        raise RetentionConfigError(
-            f"{EVENT_END_ENV} must be a date (2025-05-18) or a time with its offset (2025-05-18T22:00:00+03:00)"
+        log.warning(
+            "retention_sweep %s ignored: not a date (2025-05-18) or a time with its offset (2025-05-18T22:00:00+03:00)",
+            EVENT_END_ENV,
         )
+        return None
     return parsed.astimezone(timezone.utc)
 
 
@@ -61,7 +69,7 @@ def _positive(name: str, value: Optional[str], default: int) -> int:
 @dataclass(frozen=True)
 class RetentionSettings:
     mode: str = "dry-run"
-    # When the event ended; None: nothing is counted or changed.
+    # Optional: when an event ended; periods also count from it when it is later than the row's time.
     event_ended_at: Optional[datetime] = None
     # The brake: a rule that would change more rows is refused for the day.
     max_rows: int = 50000

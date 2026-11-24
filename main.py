@@ -9,7 +9,7 @@ from core.schema import ensure_schema
 from retention.scheduler import RetentionScheduler
 from retention.settings import RetentionSettings
 
-# A wrong RETENTION_SWEEP_MODE or EVENT_ENDED_AT stops the start here.
+# An unknown RETENTION_SWEEP_MODE stops the start here (a bad EVENT_ENDED_AT is logged and ignored).
 retention_settings = RetentionSettings.from_env()
 
 ensure_schema(engine)

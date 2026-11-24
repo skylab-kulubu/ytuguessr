@@ -1,9 +1,13 @@
 """Guessr's rules for the periodic destruction run (ADR-0062, the Place and Guessr rows).
 
-Every period counts from the event's end (EVENT_ENDED_AT), or from the row's own last
-guess when that is later (a game played after the event gets its full period). Guessr
-has no Turnstile, no ban and no login tokens on the server: its personal data is the
-address a game was started with (users.email) and the IP (users.ip_address).
+Guessr runs all the time, so the periods slide. A game row's time is its last guess, or
+when it was started (created_at) if it has none yet; a person's time is the latest of all
+their games (rows with the same address). EVENT_ENDED_AT is optional: when it is set, a
+period counts from it too, if it is later. An account active in the last 90 days is never
+anonymized (its last game is newer than the year).
+
+Guessr has no Turnstile, no ban and no login tokens on the server: its personal data is
+the address a game was started with (users.email) and the IP (users.ip_address).
 
 Never touched: scores, guesses and locations. A game row stays; once anonymized it is a
 score under a random player key that names nobody, with the leaderboard name the player
@@ -20,9 +24,12 @@ EVENT_END = "CAST(:event_end AS timestamptz)"
 # The last guess started on each game row (started_at is a Unix time).
 LAST_GUESS = "(SELECT user_id, to_timestamp(max(started_at)) AS at FROM guesses GROUP BY user_id)"
 
-# Per address, the last guess of any of its games: one person's games go together.
-EMAIL_LAST_GUESS = (
-    "(SELECT u2.email, max(g2.at) AS at FROM users u2 "
+# A game row's time: its last guess, or when it was started.
+ROW_TIME = "coalesce(g.at, u.created_at)"
+
+# Per address, the time of its newest game (guessed or not): one person's games go together.
+EMAIL_LAST_ACTIVITY = (
+    "(SELECT u2.email, max(coalesce(g2.at, u2.created_at)) AS at FROM users u2 "
     f"LEFT JOIN {LAST_GUESS} g2 ON g2.user_id = u2.id GROUP BY u2.email)"
 )
 
@@ -52,7 +59,7 @@ class Rule:
         )
 
 
-# IP addresses: event + 90 days.
+# IP addresses: 90 days after the game row's time. GREATEST skips a null EVENT_ENDED_AT.
 IP_ADDRESS = Rule(
     name="ip_address",
     version=1,
@@ -60,13 +67,13 @@ IP_ADDRESS = Rule(
     action="empty",
     cutoff="ip_cutoff",
     from_clause=f"users u LEFT JOIN {LAST_GUESS} g ON g.user_id = u.id",
-    predicate=f"u.ip_address IS NOT NULL AND greatest({EVENT_END}, g.at) <= CAST(:ip_cutoff AS timestamptz)",
+    predicate=f"u.ip_address IS NOT NULL AND greatest({EVENT_END}, {ROW_TIME}) <= CAST(:ip_cutoff AS timestamptz)",
     set_clause="ip_address = NULL",
 )
 
-# The account (school address): event + 1 year, counted from the address's last game.
-# Every game row of the address gets one random player key in place of the address (so the
-# leaderboard still shows one entry per player) and its leaderboard name.
+# The account (school address): a year after the address's newest game. Every game row of the
+# address gets one random player key in place of the address (so the leaderboard still shows
+# one entry per player) and its leaderboard name.
 ACCOUNT_EMAIL = Rule(
     name="account_email",
     version=1,
@@ -76,7 +83,7 @@ ACCOUNT_EMAIL = Rule(
     from_clause="users u",
     predicate=(
         "u.leaderboard_name IS NULL AND u.email IS NOT NULL AND u.email IN ("
-        f"SELECT e.email FROM {EMAIL_LAST_GUESS} e "
+        f"SELECT e.email FROM {EMAIL_LAST_ACTIVITY} e "
         f"WHERE greatest({EVENT_END}, e.at) <= CAST(:account_cutoff AS timestamptz))"
     ),
 )

@@ -1,5 +1,6 @@
-"""The periodic destruction run (ADR-0062): IPs go 90 days after the event, the school
-address a year after; scores and guesses stay, under a player key that names nobody and
+"""The periodic destruction run (ADR-0062), with sliding periods: a game's IP goes 90 days
+after the game (its last guess, or its start), the school address a year after the
+person's newest game; scores and guesses stay, under a player key that names nobody and
 the leaderboard name the player chose to show. Dry run and apply select the same rows; a
 second run changes nothing; one run at a time; the brake; the daily schedule."""
 import logging
@@ -21,7 +22,13 @@ def settings(mode, event_end, max_rows=50000, batch_size=500):
     return RetentionSettings(mode=mode, event_ended_at=event_end, max_rows=max_rows, batch_size=batch_size)
 
 
-def add_game(engine, email, ip, last_guess, show_name=True, score=100.0):
+def ago(days):
+    return NOW - timedelta(days=days)
+
+
+def add_game(engine, email, ip, last_guess, show_name=True, score=100.0, created_at=None):
+    """A game row; started when given, else at its last guess, else now."""
+    created_at = created_at or last_guess or datetime.now(timezone.utc)
     with engine.begin() as conn:
         location = conn.execute(text("SELECT id FROM locations LIMIT 1")).scalar()
         if location is None:
@@ -29,9 +36,10 @@ def add_game(engine, email, ip, last_guess, show_name=True, score=100.0):
                 "INSERT INTO locations (image_url, lat, lng) VALUES ('https://example.invalid/a.jpg', 41.0, 28.9) RETURNING id"
             )).scalar()
         user_id = conn.execute(text(
-            "INSERT INTO users (email, score, completed, show_name, ip_address) "
-            "VALUES (:email, :score, true, :show, :ip) RETURNING id"
-        ), {"email": email, "score": score, "show": show_name, "ip": ip}).scalar()
+            "INSERT INTO users (email, score, completed, show_name, ip_address, created_at) "
+            "VALUES (:email, :score, :completed, :show, :ip, :created) RETURNING id"
+        ), {"email": email, "score": score, "completed": last_guess is not None, "show": show_name, "ip": ip,
+            "created": created_at}).scalar()
         if last_guess is not None:
             conn.execute(text(
                 "INSERT INTO guesses (user_id, location_id, started_at, distance, score) VALUES (:u, :l, :at, 0.1, 50)"
@@ -62,13 +70,13 @@ def test_the_mode_is_dry_run_unless_set_and_an_unknown_mode_stops_the_start():
         parse_mode("dryrun")
 
 
-def test_the_event_end_is_a_date_in_turkey_or_a_time_with_its_offset():
+def test_the_event_end_is_a_date_in_turkey_or_a_time_with_its_offset_or_ignored():
     assert parse_event_end("") is None
     assert parse_event_end("2025-05-18") == datetime(2025, 5, 18, 21, 0, tzinfo=timezone.utc)
     assert parse_event_end("2025-05-18T22:00:00+03:00") == datetime(2025, 5, 18, 19, 0, tzinfo=timezone.utc)
+    # Optional: a value that is not a date (or has no offset) is logged and ignored.
     for wrong in ("18.05.2025", "2025-05-18T22:00:00"):
-        with pytest.raises(RetentionConfigError, match="EVENT_ENDED_AT"):
-            parse_event_end(wrong)
+        assert parse_event_end(wrong) is None
     with pytest.raises(RetentionConfigError, match="RETENTION_SWEEP_MAX_ROWS"):
         RetentionSettings.from_env({"RETENTION_SWEEP_MAX_ROWS": "0"})
     assert RetentionSettings.from_env({}) == RetentionSettings()
@@ -76,25 +84,27 @@ def test_the_event_end_is_a_date_in_turkey_or_a_time_with_its_offset():
 
 # Rules
 
-def test_a_year_after_the_event_ips_and_addresses_go_scores_stay(engine):
-    event_end = NOW - timedelta(days=400)
-    first = add_game(engine, "ahmet.yilmaz@std.yildiz.edu.tr", "203.0.113.1", event_end - timedelta(hours=2), score=700)
-    second = add_game(engine, "ahmet.yilmaz@std.yildiz.edu.tr", "203.0.113.1", event_end - timedelta(hours=1), score=900)
-    hidden = add_game(engine, "gizli.kisi@std.yildiz.edu.tr", "203.0.113.2", event_end - timedelta(hours=1),
-                      show_name=False, score=800)
-    later = add_game(engine, "sonra.oynayan@std.yildiz.edu.tr", "203.0.113.3", NOW - timedelta(days=10), score=600)
-    never_guessed = add_game(engine, "baslamadi@std.yildiz.edu.tr", "203.0.113.4", None, score=0)
+def test_periods_slide_from_each_game_and_the_persons_newest_game(engine):
+    first = add_game(engine, "ahmet.yilmaz@std.yildiz.edu.tr", "203.0.113.1", ago(401), score=700)
+    second = add_game(engine, "ahmet.yilmaz@std.yildiz.edu.tr", "203.0.113.1", ago(400), score=900)
+    hidden = add_game(engine, "gizli.kisi@std.yildiz.edu.tr", "203.0.113.2", ago(400), show_name=False, score=800)
+    later = add_game(engine, "sonra.oynayan@std.yildiz.edu.tr", "203.0.113.3", ago(10), score=600)
+    never_guessed = add_game(engine, "baslamadi@std.yildiz.edu.tr", "203.0.113.4", None, score=0, created_at=ago(400))
+    # An old player who has just started a new game, no guess yet: the new game keeps the
+    # address on every row of it, and its own IP; only the old game's IP goes.
+    old_game = add_game(engine, "eski.adres@std.yildiz.edu.tr", "203.0.113.5", ago(400))
+    new_game = add_game(engine, "eski.adres@std.yildiz.edu.tr", "203.0.113.6", None)
 
-    dry_run = sweep.run(engine, settings("dry-run", event_end), "manual", now=NOW)
+    dry_run = sweep.run(engine, settings("dry-run", None), "manual", now=NOW)
 
     assert dry_run.status == "ok"
     assert {r.rule: (r.status, r.matched, r.changed) for r in dry_run.rules} == {
-        "ip_address": ("dry_run", 4, 0),
+        "ip_address": ("dry_run", 5, 0),
         "account_email": ("dry_run", 4, 0),
     }
     assert row(engine, first)["ip_address"] == "203.0.113.1"
 
-    apply = sweep.run(engine, settings("apply", event_end), "manual", now=NOW)
+    apply = sweep.run(engine, settings("apply", None), "manual", now=NOW)
 
     assert apply.status == "ok"
     for rule in apply.rules:
@@ -111,25 +121,46 @@ def test_a_year_after_the_event_ips_and_addresses_go_scores_stay(engine):
     assert dict(row(engine, later)) == {
         "email": "sonra.oynayan@std.yildiz.edu.tr", "ip_address": "203.0.113.3", "leaderboard_name": None, "score": 600,
     }
+    assert (row(engine, old_game)["email"], row(engine, old_game)["ip_address"]) == ("eski.adres@std.yildiz.edu.tr", None)
+    assert (row(engine, new_game)["email"], row(engine, new_game)["ip_address"]) == ("eski.adres@std.yildiz.edu.tr", "203.0.113.6")
     # The game stays: every game row and every guess.
-    assert scalar(engine, "SELECT count(*) FROM users") == 5
-    assert scalar(engine, "SELECT count(*) FROM guesses") == 4
+    assert scalar(engine, "SELECT count(*) FROM users") == 7
+    assert scalar(engine, "SELECT count(*) FROM guesses") == 5
     assert scalar(engine, "SELECT count(*) FROM users WHERE email LIKE '%@%' AND leaderboard_name IS NOT NULL") == 0
 
-    again = sweep.run(engine, settings("apply", event_end), "manual", now=NOW)
+    again = sweep.run(engine, settings("apply", None), "manual", now=NOW)
 
     assert [(r.matched, r.changed) for r in again.rules] == [(0, 0), (0, 0)]
+
+
+def test_a_game_started_during_apply_keeps_its_address(engine, monkeypatch):
+    add_game(engine, "yaris@std.yildiz.edu.tr", "203.0.113.7", ago(400))
+    add_game(engine, "diger@std.yildiz.edu.tr", "203.0.113.8", ago(400))
+    original = sweep._anonymize_batch
+
+    def a_new_game_first(*args, **kwargs):
+        # Between the count and the change, the player starts a new game.
+        add_game(engine, "yaris@std.yildiz.edu.tr", "203.0.113.9", None)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(sweep, "_anonymize_batch", a_new_game_first)
+
+    apply = sweep.run(engine, settings("apply", None), "manual", now=NOW)
+
+    assert apply.rule("account_email").matched == 2
+    assert apply.rule("account_email").changed == 1
+    assert scalar(engine, "SELECT count(*) FROM users WHERE email = 'yaris@std.yildiz.edu.tr'") == 3
+    assert scalar(engine, "SELECT count(*) FROM users WHERE email = 'diger@std.yildiz.edu.tr'") == 0
 
 
 def test_the_leaderboard_shows_the_chosen_name_after_anonymization(engine):
     from fastapi.testclient import TestClient
     from main import app
 
-    event_end = NOW - timedelta(days=400)
-    add_game(engine, "ahmet.yilmaz@std.yildiz.edu.tr", "203.0.113.1", event_end, score=700)
-    add_game(engine, "ahmet.yilmaz@std.yildiz.edu.tr", "203.0.113.1", event_end, score=900)
-    add_game(engine, "gizli.kisi@std.yildiz.edu.tr", "203.0.113.2", event_end, show_name=False, score=800)
-    sweep.run(engine, settings("apply", event_end), "manual", now=NOW)
+    add_game(engine, "ahmet.yilmaz@std.yildiz.edu.tr", "203.0.113.1", ago(400), score=700)
+    add_game(engine, "ahmet.yilmaz@std.yildiz.edu.tr", "203.0.113.1", ago(400), score=900)
+    add_game(engine, "gizli.kisi@std.yildiz.edu.tr", "203.0.113.2", ago(400), show_name=False, score=800)
+    sweep.run(engine, settings("apply", None), "manual", now=NOW)
 
     body = TestClient(app).get("/api/game/leaderboard").json()
 
@@ -137,12 +168,11 @@ def test_the_leaderboard_shows_the_chosen_name_after_anonymization(engine):
     assert body["total_users"] == 2
 
 
-def test_ninety_days_after_the_event_only_ips_go(engine):
-    event_end = NOW - timedelta(days=100)
-    player = add_game(engine, "doksan.gun@std.yildiz.edu.tr", "203.0.113.5", event_end - timedelta(hours=1))
-    later = add_game(engine, "yeni.oyun@std.yildiz.edu.tr", "203.0.113.6", NOW - timedelta(days=89))
+def test_ninety_days_after_a_game_only_its_ip_goes(engine):
+    player = add_game(engine, "doksan.gun@std.yildiz.edu.tr", "203.0.113.5", ago(100))
+    later = add_game(engine, "yeni.oyun@std.yildiz.edu.tr", "203.0.113.6", ago(89))
 
-    apply = sweep.run(engine, settings("apply", event_end), "manual", now=NOW)
+    apply = sweep.run(engine, settings("apply", None), "manual", now=NOW)
 
     assert (apply.rule("ip_address").changed, apply.rule("account_email").matched) == (1, 0)
     assert row(engine, player)["ip_address"] is None
@@ -150,14 +180,17 @@ def test_ninety_days_after_the_event_only_ips_go(engine):
     assert row(engine, later)["ip_address"] == "203.0.113.6"
 
 
-def test_without_the_event_end_nothing_is_counted_or_changed(engine):
-    player = add_game(engine, "tarihsiz@std.yildiz.edu.tr", "203.0.113.7", NOW - timedelta(days=1000))
+def test_an_event_end_counts_too_when_it_is_later(engine):
+    player = add_game(engine, "etkinlik@std.yildiz.edu.tr", "203.0.113.7", ago(400))
 
-    apply = sweep.run(engine, settings("apply", None), "manual", now=NOW)
+    recent_event = sweep.run(engine, settings("apply", ago(50)), "manual", now=NOW)
 
-    assert apply.status == "ok"
-    assert [(r.status, r.matched) for r in apply.rules] == [("no_event_end", 0), ("no_event_end", 0)]
+    assert [(r.matched, r.changed) for r in recent_event.rules] == [(0, 0), (0, 0)]
     assert row(engine, player)["ip_address"] == "203.0.113.7"
+
+    old_event = sweep.run(engine, settings("apply", ago(100)), "manual", now=NOW)
+
+    assert (old_event.rule("ip_address").changed, old_event.rule("account_email").matched) == (1, 0)
 
 
 def test_the_brake_refuses_a_rule_that_would_change_too_many_rows(engine):
@@ -258,7 +291,10 @@ def test_the_command_runs_a_dry_run_unless_told_to_apply(engine, monkeypatch, ca
     assert cli(["--apply"]) == 0
     assert row(engine, player)["ip_address"] is None
 
+    # A bad EVENT_ENDED_AT is ignored; an unknown mode is not (the flag sets it here, so the brake stands in).
     monkeypatch.setenv("EVENT_ENDED_AT", "dün")
+    assert cli([]) == 0
+    monkeypatch.setenv("RETENTION_SWEEP_MAX_ROWS", "0")
     assert cli([]) == 2
 
 
@@ -266,3 +302,21 @@ def test_the_scheduler_does_not_start_while_the_mode_is_off(engine):
     scheduler = RetentionScheduler(engine, settings("off", None))
     scheduler.start()
     assert not scheduler.running
+
+
+def test_created_at_is_added_to_an_existing_table_with_the_time_it_is_added(engine):
+    from core.schema import ensure_schema
+
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE users DROP COLUMN created_at"))
+        conn.execute(text("INSERT INTO users (email, score, completed, show_name) VALUES ('eski@std.yildiz.edu.tr', 0, false, true)"))
+    before = datetime.now(timezone.utc) - timedelta(seconds=5)
+
+    ensure_schema(engine)
+
+    with engine.connect() as conn:
+        added = conn.execute(text("SELECT created_at FROM users")).scalar()
+    assert added is not None and added >= before
+    # So the row is not old: nothing is due.
+    result = sweep.run(engine, settings("dry-run", None), "manual", now=NOW)
+    assert [r.matched for r in result.rules] == [0, 0]

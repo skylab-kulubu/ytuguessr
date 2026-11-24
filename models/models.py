@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Column, DateTime, Integer, String, Float, Boolean, ForeignKey
+from sqlalchemy import BigInteger, Column, DateTime, Integer, String, Float, Boolean, ForeignKey, func
 from core.database import Base
 
 class User(Base):
@@ -12,6 +12,9 @@ class User(Base):
     # Set when the periodic destruction run anonymizes the row (retention/rules.py): the
     # leaderboard name the person chose to show, or "ANONIM". Null while the row is personal.
     leaderboard_name = Column(String, nullable=True)
+    # When the game was started (the database fills it). Rows from before this column hold the
+    # time it was added, so the retention run never counts them as older than they may be.
+    created_at = Column(DateTime(timezone=True), nullable=True, server_default=func.now())
 
 class Location(Base):
     __tablename__ = "locations"
