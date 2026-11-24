@@ -9,7 +9,7 @@ from core.config import settings
 from models.models import User, Guess, Location
 from services.game_logic import get_random_locations, calculate_score
 from core.utils import create_jwt, decode_jwt, haversine
-import re
+from services.names import leaderboard_name
 
 router = APIRouter()
 
@@ -276,29 +276,9 @@ def get_leaderboard(request: Request, page: int = 1, db: Session = Depends(get_d
 
     total_users = db.query(User.email).filter(User.completed == True).distinct().count()
 
-    def is_number_username(email: str):
-        username = email.split("@")[0]
-        return bool(re.fullmatch(r"[a-zA-Z]?\d+", username))
-
-    def format_name(email: str, show: bool):
-        username = email.split("@")[0]
-        if is_number_username(email):
-            return username if show else username[:2] + "*" * (len(username) - 2)
-        cleaned = re.sub(r"[^a-zA-Z.]", "", username)
-        parts = [p for p in cleaned.split(".") if p]
-        if not parts:
-            return "ANONIM"
-        if show:
-            return " ".join(part.upper() for part in parts)
-        else:
-            return " ".join(
-                part.upper() if len(part) <= 2 else part[:2].upper() + "*" * (len(part) - 2)
-                for part in parts
-            )
-
     leaderboard = [
         {
-            "name": format_name(user.email, user.show_name),
+            "name": leaderboard_name(user),
             "score": user.score,
             "is_me": current_user is not None and user.email == current_user.email
         }

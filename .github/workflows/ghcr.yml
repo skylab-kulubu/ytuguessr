@@ -1,5 +1,6 @@
 name: GHCR
 
+# PR and push: the tests (pytest against Postgres) run first.
 # PR: build the image, boot it against Postgres and probe HTTP (no push).
 # backend push: ghcr.io/skylab-kulubu/ytuguessr-backend:latest + :<sha> (no deploy).
 # backend-production push: :production + :<sha>, then the Dokploy deploy hook (if set).
@@ -13,7 +14,36 @@ permissions:
   contents: read
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: game_db
+          POSTGRES_USER: guessr
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U guessr -d game_db"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      # tests/conftest.py points the application at this Postgres.
+      - run: python -m pytest -q
+
   image:
+    needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
