@@ -2,7 +2,7 @@
 #
 # NEXT_PUBLIC_API_URL is baked into the client bundle at build time, so it is a build argument and the build
 # fails without it (an image must never fall back to http://localhost:8000/api). CI passes the production API:
-#   docker build --build-arg NEXT_PUBLIC_API_URL=https://api.guessr.yildizskylab.com/api/ -t ytuguessr-frontend .
+#   docker build --build-arg NEXT_PUBLIC_API_URL=https://guessr-api.yildizskylab.com/api/ -t ytuguessr-frontend .
 # Local development is unchanged: `npm run dev` still defaults to http://localhost:8000/api (src/lib/api.js).
 
 FROM node:22-alpine AS deps

@@ -25,7 +25,7 @@ jobs:
       IMAGE: ghcr.io/skylab-kulubu/ytuguessr-frontend
       # Baked into the client bundle at build time (NEXT_PUBLIC_*). src/lib/api.js appends /game/..., so the
       # value carries the /api/ prefix, exactly as on the Vercel build this image replaces.
-      API_URL: https://api.guessr.yildizskylab.com/api/
+      API_URL: https://guessr-api.yildizskylab.com/api/
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
