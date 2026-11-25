@@ -2,16 +2,25 @@ name: GHCR
 
 # PR and push: the tests (pytest against Postgres) run first.
 # PR: build the image, boot it against Postgres and probe HTTP (no push).
-# backend push: ghcr.io/skylab-kulubu/ytuguessr-backend:latest + :<sha> (no deploy).
-# backend-production push: :production + :<sha>, then the Dokploy deploy hook (if set).
+# backend push: ghcr.io/skylab-kulubu/ytuguessr-backend:latest + :<sha>; when the tests and the probe pass,
+#   also :production and the Dokploy deploy hook (production goes live automatically).
+#   Not automatic when the push changes the schema or the retention run (models/, core/schema.py,
+#   core/database.py, retention/) since the commit production runs: the run stops before :production.
+#   After a look: Actions -> GHCR -> Run workflow (branch backend) deploys it.
 on:
   pull_request:
-    branches: [backend, backend-production]
+    branches: [backend]
   push:
-    branches: [backend, backend-production]
+    branches: [backend]
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+# One run per branch at a time: production gets the pushes in order.
+concurrency:
+  group: ghcr-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   test:
@@ -42,8 +51,71 @@ jobs:
       # tests/conftest.py points the application at this Postgres.
       - run: python -m pytest -q
 
+  # Decides whether this run goes live: deploy=true on a backend push without schema or retention changes
+  # since the last production deploy, and on a manual run of backend.
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      deployments: read
+    outputs:
+      deploy: ${{ steps.check.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [ "$EVENT" = pull_request ] || [ "$REF" != refs/heads/backend ]; then
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$EVENT" = workflow_dispatch ]; then
+            echo "Manual run of backend: deploying $SHA."
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # The commit production runs: the last successful deploy to the production environment;
+          # before the first one, the backend-production branch (the last manual release).
+          base=''
+          for id in $(gh api "repos/$GITHUB_REPOSITORY/deployments?environment=production&per_page=30" --jq '.[].id'); do
+            state=$(gh api "repos/$GITHUB_REPOSITORY/deployments/$id/statuses?per_page=1" --jq '.[0].state // ""')
+            if [ "$state" = success ]; then
+              base=$(gh api "repos/$GITHUB_REPOSITORY/deployments/$id" --jq .sha)
+              break
+            fi
+          done
+          [ -n "$base" ] || base=$(git rev-parse origin/backend-production)
+          echo "production runs $base"
+          if git cat-file -e "$base^{commit}" 2>/dev/null; then
+            changed=$(git diff --name-only "$base" "$SHA" -- models core/schema.py core/database.py retention)
+          else
+            changed="(unknown production commit $base)"
+          fi
+          if [ -z "$changed" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "::warning::Schema or retention code changed since production ($base); not deployed automatically. After a look: Actions -> GHCR -> Run workflow (backend)."
+          {
+            echo "### Not deployed automatically: schema or retention code changed"
+            echo
+            echo "Production runs \`$base\`. Changed:"
+            echo
+            echo "$changed" | sed 's/^/- /'
+            echo
+            echo "After a look: Actions -> GHCR -> Run workflow (branch backend)."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "deploy=false" >> "$GITHUB_OUTPUT"
+
   image:
-    needs: test
+    needs: [test, gate]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -111,33 +183,52 @@ jobs:
           docker logs app
           exit 1
       - uses: docker/login-action@v3
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/backend'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push the probed image to GHCR
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/backend'
         env:
-          REF_NAME: ${{ github.ref_name }}
+          DEPLOY: ${{ needs.gate.outputs.deploy }}
           SHA: ${{ github.sha }}
         run: |
-          if [ "$REF_NAME" = backend-production ]; then
-            tags="production $SHA"
-          else
-            tags="latest $SHA"
+          tags="latest $SHA"
+          if [ "$DEPLOY" = true ]; then
+            tags="$tags production"
           fi
           for tag in $tags; do
             docker tag ytuguessr-backend:ci "$IMAGE:$tag"
             docker push "$IMAGE:$tag"
           done
+
+  deploy:
+    needs: [gate, image]
+    if: needs.gate.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      # The hook redeploys only the Guessr backend application in Dokploy (it pulls :production).
       - name: Notify Dokploy
-        if: github.event_name == 'push' && github.ref == 'refs/heads/backend-production'
         env:
           HOOK: ${{ secrets.DOKPLOY_DEPLOY_HOOK }}
         run: |
           if [ -z "$HOOK" ]; then
-            echo "DOKPLOY_DEPLOY_HOOK unset; skip"
-            exit 0
+            echo "::error::DOKPLOY_DEPLOY_HOOK is not set: :production was pushed but nothing was deployed."
+            exit 1
           fi
-          curl -fsS -X POST "$HOOK"
+          curl -fsS -o /dev/null -X POST "$HOOK"
+      - name: Wait for the API
+        run: |
+          sleep 90
+          for _ in $(seq 1 40); do
+            if curl -fsS --max-time 10 https://guessr-api.yildizskylab.com/api/game/stats | grep -q '"total_locations"'; then
+              echo "guessr-api answers"
+              exit 0
+            fi
+            sleep 6
+          done
+          echo "::error::guessr-api did not answer for 5 minutes after the deploy"
+          exit 1
