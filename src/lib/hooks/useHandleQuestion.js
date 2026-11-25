@@ -5,6 +5,7 @@ import { formatDistance } from "../utils";
 
 export const useHandleQuestion = ({ status, nextMut, guessMut, safeNext, safeGuess }) => {
   const [question, setQuestion] = useState(null);
+  const [deadline, setDeadline] = useState(null);
   const [remaining, setRemaining] = useState(0);
   const [guess, setGuess] = useState(null);
 
@@ -12,14 +13,18 @@ export const useHandleQuestion = ({ status, nextMut, guessMut, safeNext, safeGue
   const formattedDistance = useMemo(() => formatDistance(distanceInMeters), [distanceInMeters]);
 
   const actual = useMemo(() => {
-  if (guessMut.isSuccess && guessMut.data?.actual_lat && guessMut.data?.actual_lng) {
-    return [guessMut.data.actual_lat, guessMut.data.actual_lng];
-  }
-  return null;
-}, [guessMut.isSuccess, guessMut.data]);
+    if (guessMut.isSuccess && guessMut.data?.actual_lat && guessMut.data?.actual_lng) {
+      return [guessMut.data.actual_lat, guessMut.data.actual_lng];
+    }
+    return null;
+  }, [guessMut.isSuccess, guessMut.data]);
 
+  /* Tur bir kez cevaplaninca yeni soru gelene kadar kapali kalir. guessMut
+     "Sonraki tur"da sifirlandigi icin ona bakmak yetmiyor: eski sayac yeni soru
+     gelmeden 0'a duserse yeni tura (0,0) gonderiyordu. */
+  const answeredRef = useRef(false);
   const autoSentRef = useRef(false);
-  const prevRemainingRef = useRef(remaining);
+  const prevRemainingRef = useRef(0);
 
  /* ------ Soru Verisini Kullanma ------ */
   useEffect(() => { // İlk yüklemede ya da question state'i boşken yeni soru çek
@@ -38,38 +43,44 @@ export const useHandleQuestion = ({ status, nextMut, guessMut, safeNext, safeGue
 
   useEffect(() => {
     if (!question) return;
-    setRemaining(Math.max(1, Math.ceil(question.time_left)));
-
-    const id = setInterval(() => {
-      setRemaining((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1_000);
-
-    return () => clearInterval(id);
+    answeredRef.current = false;
+    autoSentRef.current = false;
+    // En az 1 sn: suresi dolmus bir soruya donulunce de 0'a inis yasansin, otomatik gonderim tetiklensin.
+    const end = Date.now() + Math.max(1, question.time_left) * 1000;
+    setDeadline(end);
+    setRemaining(Math.ceil((end - Date.now()) / 1000));
   }, [question]);
 
-  /* ------ Otomatik 0 Tahmini ------ */
   useEffect(() => {
-    autoSentRef.current = false;
-    prevRemainingRef.current = remaining;
-  }, [question?.image_url]);
+    if (guessMut.isSuccess) answeredRef.current = true;
+  }, [guessMut.isSuccess]);
 
+  useEffect(() => {
+    if (!deadline) return;
+    /* Kalan sure bitis anindan hesaplaniyor: arka plan sekmesinde yavaslayan
+       setInterval'i saymak sayaci kaydiriyordu. */
+    const id = setInterval(() => {
+      if (answeredRef.current) return;
+      setRemaining(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
+    }, 250);
+    return () => clearInterval(id);
+  }, [deadline]);
 
+  /* ------ Otomatik 0 Tahmini ------ */
   useEffect(() => { // UI timer'ı ile otomatik tahmin
     if (
       prevRemainingRef.current > 0 &&   // geri sayım daha önce pozitifti
       remaining === 0 &&                // şimdi 0'a düştü
       !autoSentRef.current &&           // oto-gönderi henüz yapılmadı
-      !guessMut.isPending &&            // başka tahmin yollanmıyor
-      !guessMut.isSuccess               // manuel tahmin yapılmadı
-
+      !answeredRef.current &&           // tur cevaplanmadı
+      !guessMut.isPending               // başka tahmin yollanmıyor
     ) {
       autoSentRef.current = true;
-      setGuess([0, 0]);
       safeGuess({ lat: 0, lng: 0 });
     }
 
     prevRemainingRef.current = remaining;
-  }, [remaining, guessMut.isPending, guessMut.isSuccess, safeGuess]);
+  }, [remaining, guessMut.isPending, safeGuess]);
 
-  return { question, remaining, guess, actual, setGuess, formattedDistance };
+  return { question, deadline, remaining, guess, actual, setGuess, formattedDistance };
 };
