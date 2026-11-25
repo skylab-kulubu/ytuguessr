@@ -1,22 +1,30 @@
 "use client";
 
-import { MapPin } from "lucide-react";
-import { motion } from "framer-motion";
+import { MapFold } from "../Glyph";
 
-export default function MapOpenButton({ onClick, title = "Haritayı Aç" }) {
+/** `compact`: isaret konmusken onay butonunun yaninda kalan ikincil hali. */
+export default function MapOpenButton({ onClick, compact = false }) {
+  if (compact) {
     return (
-        <motion.button
-            onClick={onClick}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            title={title}
-            className="fixed bottom-6 right-6 z-10 flex items-center justify-center"
-        >
-                <span className="relative z-10 flex h-18 w-18 items-center justify-center rounded-full overflow-hidden backdrop-blur-xl
-                   bg-violet-400/30 border border-purple-300/20 group-hover:shadow-purple-400/40"
-                >
-                    <MapPin className="h-6 w-6 text-white/90 drop-shadow-lg" strokeWidth={2.5} />
-                </span>
-        </motion.button>
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label="Haritayı aç"
+        className="btn btn-ghost h-12 w-12 rounded-[10px] bg-canvas/85"
+      >
+        <MapFold className="h-5 w-5" />
+      </button>
     );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="btn btn-primary h-12 gap-2.5 rounded-[10px] pr-5 pl-4 text-[0.9375rem]"
+    >
+      <MapFold className="h-[18px] w-[18px]" />
+      Haritayı aç
+    </button>
+  );
 }
