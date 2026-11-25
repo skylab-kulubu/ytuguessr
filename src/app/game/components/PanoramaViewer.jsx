@@ -3,7 +3,7 @@
 import { Canvas, useLoader } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
-import { Component, Suspense, useCallback, useEffect, useState } from "react";
+import { Component, Suspense, memo, useCallback, useEffect, useState } from "react";
 import { Drag } from "./Glyph";
 
 function CylPanorama({ imageUrl, onReady }) {
@@ -68,7 +68,8 @@ function DragHint() {
   );
 }
 
-export default function PanoramaViewer({ imageUrl, showHint = false }) {
+/* memo: oyun sayfasi her saniye render oluyor; panoramanin bundan etkilenmesine gerek yok. */
+export default memo(function PanoramaViewer({ imageUrl, showHint = false }) {
   const [state, setState] = useState("loading");
   const [hintDone, setHintDone] = useState(false);
   const ready = useCallback(() => setState("ready"), []);
@@ -87,9 +88,13 @@ export default function PanoramaViewer({ imageUrl, showHint = false }) {
     >
       {imageUrl && (
         <PanoramaBoundary onError={failed}>
-          {/* flat: varsayilan ACES tone mapping fotografi soluklastiriyordu (128 gri 141 basiliyordu). */}
+          {/* flat: varsayilan ACES tone mapping fotografi soluklastiriyordu (128 gri 141 basiliyordu).
+              demand: duran bir fotograf saniyede 60 kez cizilip ana is parcacigini
+              harita animasyonlariyla paylasmasin; OrbitControls surukleme ve
+              sonumleme boyunca kare istiyor. */}
           <Canvas
             flat
+            frameloop="demand"
             className="!block !h-full !w-full"
             camera={{ fov: 35, position: [0, 0, 0.1] }}
           >
@@ -113,4 +118,4 @@ export default function PanoramaViewer({ imageUrl, showHint = false }) {
       {showHint && state === "ready" && !hintDone && <DragHint />}
     </div>
   );
-}
+});
