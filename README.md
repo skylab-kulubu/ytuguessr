@@ -4,7 +4,7 @@
 
 Bu projeyi çalıştırmak için önce `.env.example` dosyasını `.env` olarak kopyalayıp değerleri doldurun, sonra `docker-compose up --build` komudunu kullanınız.
 
-Yayın: `backend` dalına her push `ghcr.io/skylab-kulubu/ytuguessr-backend:latest` imajını üretir (canlıya dokunmaz). Canlıya çıkmak için `backend`'den `backend-production`'a PR açılır; birleşince `:production` imajı üretilir ve Dokploy deploy edilir.
+Yayın: `backend` dalına her push testleri koşar, imajı Postgres'e karşı açıp dener ve `ghcr.io/skylab-kulubu/ytuguessr-backend:latest` imajını üretir. Hepsi geçerse aynı imaj `:production` olur ve Dokploy deploy edilir (otomatik canlı). Canlıdaki sürümden bu yana şema ya da imha kodu (`models/`, `core/schema.py`, `core/database.py`, `retention/`) değiştiyse otomatik yayın durur; kontrol edildikten sonra Actions → GHCR → Run workflow (dal `backend`) ile çıkar.
 
 
 ## Etkinlik lider tabloları
