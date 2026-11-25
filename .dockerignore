@@ -6,3 +6,5 @@
 __pycache__/
 *.pyc
 game.db
+tests/
+requirements-dev.txt
