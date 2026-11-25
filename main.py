@@ -1,12 +1,30 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import game, admin
-from core.database import Base, engine
+from core.database import engine
 from core.config import settings
+from core.schema import ensure_schema
+from retention.scheduler import RetentionScheduler
+from retention.settings import RetentionSettings
 
-Base.metadata.create_all(bind=engine)
+# An unknown RETENTION_SWEEP_MODE stops the start here (a bad EVENT_ENDED_AT is logged and ignored).
+retention_settings = RetentionSettings.from_env()
 
-app = FastAPI()
+ensure_schema(engine)
+
+retention_scheduler = RetentionScheduler(engine, retention_settings)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    retention_scheduler.start()
+    yield
+    retention_scheduler.stop()
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
