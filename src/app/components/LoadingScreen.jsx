@@ -6,7 +6,7 @@ import { TriangleAlert } from 'lucide-react';
 {/* ---- Ana Yükleniyor Ekranı ---- */}
 const LoadingScreen = () => {
   return (
-    <div className="min-h-screen bg-[#1B1740] text-white">
+    <div className="min-h-screen bg-canvas text-white">
       <div className="flex justify-center items-center pt-24 h-[calc(100vh-6rem)]">
         <Lottie
           animationData={loadingAnimation}
@@ -28,7 +28,7 @@ const GameLoadingScreen = ({ error }) => {
           <p className="text-sm leading-thight mb-6 mt-4">{error}</p>
           <button 
             onClick={() => window.location.href = '/'}
-            className="px-3 py-1 border-2 border-gray-400 text-gray-400 rounded-xl text-sm transition-colors"
+            className="px-3 py-1 border-2 border-gray-400 text-faint rounded-xl text-sm transition-colors"
           >
             Ana Sayfaya Dön
           </button>

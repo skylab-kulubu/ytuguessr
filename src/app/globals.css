@@ -1,6 +1,213 @@
 @import "tailwindcss";
 
-html, body, #__next {
-  @apply h-full w-full m-0 p-0;
+/* ============================================================
+   YTUGuessr tasarim sistemi: yesil tonlu koyu zemin ve harita.
+   Yesil accent (--color-accent) SADECE birincil butonlar ve durum
+   gostergelerinde kullanilir: ikon, ayirac, baslik, link hover gibi
+   dekoratif yerlerde notr beyaz tonlari tercih edilir.
+   Altin 1.'lik madalyasi, kirmizi tahmin marker'i: ikisi de semantik.
+   ============================================================ */
+@theme {
+  /* Zemin ve harita yesil tonlu; yesil accent ise sadece butonlarda ve
+     durum gostergelerinde kalir (bkz. asagidaki not). */
+  --color-canvas: #0a100d;
+  --color-canvas-2: #0d1611;
+  --color-surface: #111c16;
+  --color-hair: #1f3128;
+
+  --color-ink: #e7efe7;
+  --color-muted: #9bb0a0;
+  --color-faint: #7c9482;
+
+  --color-accent: #3dd68c;
+  --color-accent-2: #22a96c;
+  --color-on-accent: #04180f;
+
+  --color-gold: #e8b84b;
+  --color-marker: #cc302e;
+  --color-danger: #f2716f;
+
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SFMono-Regular", monospace;
+
+  /* Kose yaricapi sistemi: yuzeyler 14px, kontroller 10px, rozetler tam yuvarlak. */
+  --radius-panel: 14px;
+  --radius-control: 10px;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+@layer base {
+  :root {
+    color-scheme: dark;
+
+    /* campusMap.js bu degiskenleri okur. Varsayilan: on plan yogunlugu. */
+    --map-line: rgba(199, 224, 205, 0.16);
+    --map-fill: rgba(61, 214, 140, 0.05);
+    --map-road: rgba(199, 224, 205, 0.34);
+    --map-highlight: rgba(232, 245, 234, 0.85);
+    --map-accent: #3dd68c;
+    --map-label: rgba(155, 176, 160, 0.65);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-accent) 32%, transparent);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* Skor, sure, mesafe ve siralama: hepsi tabular mono. */
+  .tnum {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+}
+
+@layer components {
+  /* Arka planda duran harita: metnin okunurlugunu bozmayacak yogunluk. */
+  .map-ambient {
+    --map-line: rgba(199, 224, 205, 0.07);
+    --map-fill: rgba(61, 214, 140, 0.022);
+    --map-road: rgba(199, 224, 205, 0.13);
+    --map-highlight: rgba(232, 245, 234, 0.28);
+    --map-accent: rgba(61, 214, 140, 0.4);
+    --map-label: rgba(155, 176, 160, 0.22);
+  }
+
+  .panel {
+    background: var(--color-surface);
+    border: 1px solid var(--color-hair);
+    border-radius: var(--radius-panel);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    border-radius: var(--radius-control);
+    font-weight: 600;
+    line-height: 1;
+    transition: background-color 0.2s var(--ease-out-expo),
+      border-color 0.2s var(--ease-out-expo), transform 0.12s var(--ease-out-expo),
+      color 0.2s var(--ease-out-expo);
+  }
+  .btn:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  .btn:disabled {
+    cursor: not-allowed;
+  }
+
+  .btn-primary {
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--color-accent) 88%, white);
+  }
+  .btn-primary:disabled {
+    background: var(--color-hair);
+    color: var(--color-muted);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--color-hair);
+    color: var(--color-ink);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    border-color: color-mix(in oklab, white 22%, var(--color-hair));
+    background: color-mix(in oklab, white 6%, transparent);
+  }
+}
+
+@layer utilities {
+  .road-flow {
+    stroke-dasharray: 14 220;
+    stroke-dashoffset: 0;
+    animation: road-flow-anim var(--flow-dur, 14s) linear infinite;
+    animation-delay: var(--flow-delay, 0s);
+  }
+  @keyframes road-flow-anim {
+    to {
+      stroke-dashoffset: -234;
+    }
+  }
+
+  .map-ping {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: map-ping-anim 2.6s var(--ease-out-expo) infinite;
+  }
+  @keyframes map-ping-anim {
+    0% {
+      transform: scale(0.4);
+      opacity: 0.55;
+    }
+    75%,
+    100% {
+      transform: scale(3.2);
+      opacity: 0;
+    }
+  }
+}
+
+/* ---- Leaflet'i koyu temaya uydur ---- */
+.leaflet-container {
+  background: var(--color-canvas-2);
+  font-family: var(--font-display);
+}
+.leaflet-control-attribution {
+  background: rgba(10, 16, 13, 0.78) !important;
+  color: var(--color-faint) !important;
+  font-size: 10px !important;
+  font-family: var(--font-mono);
+}
+.leaflet-control-attribution a {
+  color: var(--color-muted) !important;
+}
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border-color: var(--color-hair);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .road-flow,
+  .map-ping {
+    animation: none;
+  }
+  .road-flow {
+    stroke-dasharray: none;
+    opacity: 0.35;
+  }
+  .map-ping {
+    opacity: 0;
+  }
+}
