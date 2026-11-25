@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from schemas.game import StartGameRequest, GuessRequest
 from core.database import SessionLocal
 from core.config import settings
-from models.models import User, Guess, Location
+from models.models import Event, User, Guess, Location
 from services.game_logic import get_random_locations, calculate_score
 from core.utils import create_jwt, decode_jwt, haversine
 from services.names import leaderboard_name
@@ -19,6 +19,22 @@ def get_db():
         yield db
     finally:
         db.close()
+
+def event_status(event, now):
+    if now < event.starts_at:
+        return "upcoming"
+    if now >= event.ends_at:
+        return "ended"
+    return "active"
+
+def event_info(event, now):
+    return {
+        "slug": event.slug,
+        "name": event.name,
+        "starts_at": event.starts_at,
+        "ends_at": event.ends_at,
+        "status": event_status(event, now),
+    }
 
 @router.post("/start")
 def start_game(data: StartGameRequest, request: Request, db: Session = Depends(get_db)):
@@ -155,6 +171,8 @@ def make_guess(data: GuessRequest, request: Request, db: Session = Depends(get_d
     total_answered = db.query(Guess).filter(Guess.user_id == user.id, Guess.distance != None).count()
     if total_answered >= settings.LOCATION_COUNT:
         user.completed = True
+        # Event leaderboards count a game by when its last guess was made.
+        user.completed_at = datetime.now(timezone.utc)
         db.commit()
 
     return {
@@ -242,12 +260,31 @@ def get_summary(request: Request, db: Session = Depends(get_db)):
         "guesses": details
     }
 
+@router.get("/events")
+def list_events(db: Session = Depends(get_db)):
+    now = datetime.now(timezone.utc)
+    events = db.query(Event).order_by(Event.starts_at.desc()).all()
+    return {"events": [event_info(e, now) for e in events]}
+
 @router.get("/leaderboard")
-def get_leaderboard(request: Request, page: int = 1, db: Session = Depends(get_db)):
+def get_leaderboard(request: Request, page: int = 1, event: str | None = None, db: Session = Depends(get_db)):
     try:
         current_user = decode_jwt(request, db)
     except HTTPException:
         current_user = None
+
+    # Without ?event= the filters are empty and every query below is the general leaderboard's.
+    # With it: only the games completed within the event's window, each player's best of them.
+    filters = []
+    selected_event = None
+    if event is not None:
+        selected_event = db.query(Event).filter(Event.slug == event).first()
+        if selected_event is None:
+            raise HTTPException(status_code=404, detail="Etkinlik bulunamadı.")
+        filters = [
+            User.completed_at >= selected_event.starts_at,
+            User.completed_at < selected_event.ends_at,
+        ]
 
     page_size = settings.LEADERBOARD_PAGE_SIZE
     offset = (page - 1) * page_size
@@ -257,7 +294,7 @@ def get_leaderboard(request: Request, page: int = 1, db: Session = Depends(get_d
             User.email,
             func.max(User.score).label("max_score")
         )
-        .filter(User.completed == True)
+        .filter(User.completed == True, *filters)
         .group_by(User.email)
         .subquery()
     )
@@ -268,13 +305,14 @@ def get_leaderboard(request: Request, page: int = 1, db: Session = Depends(get_d
             subquery,
             (User.email == subquery.c.email) & (User.score == subquery.c.max_score)
         )
+        .filter(*filters)
         .order_by(User.score.desc())
         .offset(offset)
         .limit(page_size)
         .all()
     )
 
-    total_users = db.query(User.email).filter(User.completed == True).distinct().count()
+    total_users = db.query(User.email).filter(User.completed == True, *filters).distinct().count()
 
     leaderboard = [
         {
@@ -289,7 +327,7 @@ def get_leaderboard(request: Request, page: int = 1, db: Session = Depends(get_d
     if current_user:
         best_score = (
             db.query(func.max(User.score))
-            .filter(User.email == current_user.email, User.completed == True)
+            .filter(User.email == current_user.email, User.completed == True, *filters)
             .scalar()
         )
         if best_score is not None:
@@ -299,18 +337,21 @@ def get_leaderboard(request: Request, page: int = 1, db: Session = Depends(get_d
                     subquery,
                     (User.email == subquery.c.email) & (User.score == subquery.c.max_score)
                 )
-                .filter(User.score > best_score)
+                .filter(User.score > best_score, *filters)
                 .count()
             )
             user_rank = higher_count + 1
 
-    return {
+    result = {
         "page": page,
         "total_pages": (total_users + page_size - 1) // page_size,
         "total_users": total_users,
         "leaderboard": leaderboard,
         "user_rank": user_rank
     }
+    if selected_event is not None:
+        result["event"] = event_info(selected_event, datetime.now(timezone.utc))
+    return result
 
 @router.get("/stats")
 def get_stats(db: Session = Depends(get_db)):

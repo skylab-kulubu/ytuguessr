@@ -15,6 +15,9 @@ class User(Base):
     # When the game was started (the database fills it). Rows from before this column hold the
     # time it was added, so the retention run never counts them as older than they may be.
     created_at = Column(DateTime(timezone=True), nullable=True, server_default=func.now())
+    # When the game's last guess was made (set once, when it is completed). Null for unfinished
+    # games and for games from before this column: event leaderboards count only games with it.
+    completed_at = Column(DateTime(timezone=True), nullable=True)
 
 class Location(Base):
     __tablename__ = "locations"
@@ -34,6 +37,18 @@ class Guess(Base):
     started_at = Column(Float, nullable=True)
     time_taken = Column(Float, nullable=True)
     score = Column(Float, nullable=True)
+
+class Event(Base):
+    """A promoted time window with its own leaderboard: the games completed in [starts_at, ends_at).
+    Deleting an event deletes only its definition; scores stay on the general leaderboard."""
+    __tablename__ = "events"
+    id = Column(Integer, primary_key=True)
+    slug = Column(String(64), nullable=False, unique=True, index=True)  # e.g. festival-gunu, ?event=
+    name = Column(String(128), nullable=False)
+    starts_at = Column(DateTime(timezone=True), nullable=False)
+    ends_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
 
 class RetentionRun(Base):
     """The receipt of one periodic destruction run, without personal data (ADR-0062).

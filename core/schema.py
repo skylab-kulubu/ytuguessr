@@ -13,6 +13,8 @@ SCHEMA_LOCK_KEY = 0x6775657373736368
 ADDED_COLUMNS = (
     ("users", "leaderboard_name", "VARCHAR"),
     ("users", "created_at", "TIMESTAMPTZ DEFAULT now()"),
+    # No default: games completed before it stay out of every event's leaderboard.
+    ("users", "completed_at", "TIMESTAMPTZ"),
 )
 
 

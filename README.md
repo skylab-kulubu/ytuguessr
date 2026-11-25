@@ -7,6 +7,21 @@ Bu projeyi çalıştırmak için önce `.env.example` dosyasını `.env` olarak 
 Yayın: `backend` dalına her push `ghcr.io/skylab-kulubu/ytuguessr-backend:latest` imajını üretir (canlıya dokunmaz). Canlıya çıkmak için `backend`'den `backend-production`'a PR açılır; birleşince `:production` imajı üretilir ve Dokploy deploy edilir.
 
 
+## Etkinlik lider tabloları
+
+Genel lider tablosu (`GET /api/game/leaderboard`) olduğu gibi çalışır. Oyun bir etkinlik için tanıtılacaksa (ör. 26–29 Kasım Festival Günü) admin bir etkinlik tanımlar; o etkinliğin lider tablosu, **son tahmini etkinlik aralığında yapılan** (tamamlanan) oyunlardan her oyuncunun en iyisini sıralar. Aynı oyun genel tabloda da sayılır.
+
+```sh
+# Tanımla: tarih verilirse Türkiye saatiyle bütün gün sayılır (29 Kasım dahil, 30 Kasım 00:00'a kadar)
+curl -X POST "$API/api/admin/events?key=$ADMIN_SECRET" -H 'Content-Type: application/json' \
+  -d '{"slug": "festival-gunu", "name": "Festival Günü", "starts_at": "2026-11-26", "ends_at": "2026-11-29"}'
+```
+
+- Saat de verilebilir, ofsetiyle: `"starts_at": "2026-11-26T10:00:00+03:00"`. Ofsetsiz saat, bitişi başlangıçtan önce olan aralık ve aynı `slug` reddedilir.
+- Admin: `GET /api/admin/events`, `POST /api/admin/events`, `PUT /api/admin/events/{id}` (yalnız verilen alanlar değişir), `DELETE /api/admin/events/{id}` (yalnız tanım silinir, skorlar kalır).
+- Herkese açık: `GET /api/game/events` (etkinlikler ve durumları: `upcoming`, `active`, `ended`), `GET /api/game/leaderboard?event=festival-gunu&page=1` (genel tabloyla aynı yanıt ve bir `event` alanı; bilinmeyen slug 404).
+- Oyunun tamamlandığı an `users.completed_at`'e yazılır (sütun açılışta eklenir). Bu sütundan önce tamamlanmış oyunlar hiçbir etkinliğe sayılmaz.
+
 ## Saklama ve imha
 
 ADR-0062'nin Guessr satırları günlük bir işle uygulanır (`retention/`). Guessr sürekli çalıştığı için süreler kayar: bir oyun satırının zamanı son tahminidir, tahmini yoksa başlatıldığı an (`users.created_at`); kişinin zamanı aynı adresle oynadığı en yeni oyundur. `EVENT_ENDED_AT` verilirse süre ondan da sayılır, geç olan geçerlidir. Son 90 günde oynamış kişiye hiç dokunulmaz.

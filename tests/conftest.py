@@ -41,6 +41,6 @@ def engine():
     ensure_schema(app_engine)
     with app_engine.begin() as conn:
         conn.execute(text(
-            "TRUNCATE guesses, users, locations, retention_run_rules, retention_runs RESTART IDENTITY CASCADE"
+            "TRUNCATE guesses, users, locations, events, retention_run_rules, retention_runs RESTART IDENTITY CASCADE"
         ))
     yield app_engine
