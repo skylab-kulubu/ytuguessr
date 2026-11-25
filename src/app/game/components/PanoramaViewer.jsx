@@ -4,6 +4,7 @@ import { Canvas, useLoader } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { Component, Suspense, useCallback, useEffect, useState } from "react";
+import { Drag } from "./Glyph";
 
 function CylPanorama({ imageUrl, onReady }) {
   const tex = useLoader(THREE.TextureLoader, imageUrl);
@@ -57,13 +58,33 @@ function Notice({ failed }) {
   );
 }
 
-export default function PanoramaViewer({ imageUrl }) {
+/** Panoramanin kayan bir fotograf oldugu ilk bakista anlasilmiyor. */
+function DragHint() {
+  return (
+    <p className="drag-hint pointer-events-none absolute inset-x-0 bottom-28 mx-auto flex w-max items-center gap-2.5 lg:bottom-10">
+      <Drag />
+      Etrafa bakmak için sürükle
+    </p>
+  );
+}
+
+export default function PanoramaViewer({ imageUrl, showHint = false }) {
   const [state, setState] = useState("loading");
+  const [hintDone, setHintDone] = useState(false);
   const ready = useCallback(() => setState("ready"), []);
   const failed = useCallback(() => setState("failed"), []);
 
+  useEffect(() => {
+    if (!showHint || state !== "ready") return;
+    const id = setTimeout(() => setHintDone(true), 5000);
+    return () => clearTimeout(id);
+  }, [showHint, state]);
+
   return (
-    <div className="fixed inset-0 z-0 cursor-grab overflow-hidden bg-canvas active:cursor-grabbing">
+    <div
+      className="fixed inset-0 z-0 cursor-grab overflow-hidden bg-canvas active:cursor-grabbing"
+      onPointerDown={() => setHintDone(true)}
+    >
       {imageUrl && (
         <PanoramaBoundary onError={failed}>
           {/* flat: varsayilan ACES tone mapping fotografi soluklastiriyordu (128 gri 141 basiliyordu). */}
@@ -89,6 +110,7 @@ export default function PanoramaViewer({ imageUrl }) {
       )}
 
       {state !== "ready" && <Notice failed={state === "failed"} />}
+      {showHint && state === "ready" && !hintDone && <DragHint />}
     </div>
   );
 }
