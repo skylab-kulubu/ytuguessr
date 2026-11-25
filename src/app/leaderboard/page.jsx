@@ -51,7 +51,7 @@ function LeaderboardView() {
       <Header />
 
       <main className="relative flex-1 overflow-hidden">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[520px]">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[520px] overflow-hidden">
           <CampusMap
             ambient
             labels={false}

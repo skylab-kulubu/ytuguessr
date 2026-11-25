@@ -55,7 +55,7 @@ export default function SummaryPage() {
       <Header />
 
       <main className="relative flex-1 overflow-hidden">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[480px]">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[480px] overflow-hidden">
           <CampusMap
             ambient
             labels={false}
