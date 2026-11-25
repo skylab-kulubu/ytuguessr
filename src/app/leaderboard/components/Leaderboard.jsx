@@ -1,87 +1,73 @@
 "use client";
 
-import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 
 export default function Leaderboard({ entries, current }) {
+  const reduce = useReducedMotion();
+
+  if (!entries.length) {
     return (
-        <motion.div className="bg-white/5 backdrop-blur-sm rounded-xl border border-violet-500/20 overflow-hidden shadow-2xl"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            transition={{ duration: 0.8, ease: "easeOut", height: { duration: 0.6 }, opacity: { duration: 0.4, delay: 0.2 } }}
-        >
-            <div className="overflow-x-auto">
-                <table className="w-full table-fixed border-collapse">
-                    <motion.thead
-                        initial={{ y: -20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.3, duration: 0.5 }}
-                    >
-                        <tr className="border-b border-violet-500/30">
-                            <th className="w-1/12 px-6 py-4 text-left font-bold text-violet-400">#</th>
-                            <th className="w-6/12 px-6 py-4 text-left font-bold text-violet-400">İsim</th>
-                            <th className="w-5/12 px-6 py-4 text-right font-bold text-violet-400">Puan</th>
-                        </tr>
-                    </motion.thead>
-                    <AnimatePresence mode="wait">
-                        <motion.tbody key={current}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.3, ease: "easeOut" }}
-                        >
-                            {entries.map((data, index) => (
-                                <motion.tr key={data.rank}
-                                    initial={{ height: 0, opacity: 0, y: 20}}
-                                    animate={{ height: "auto", opacity: 1, y: 0}}
-                                    transition={{ delay: 0.1 + (index * 0.05), duration: 0.3, ease: "easeOut"}}
-                                    className={`border-b border-violet-500/20 hover:bg-violet-500/10 transition-colors duration-200 ${data.isMe
-                                        ? "font-semibold border-blue-500/50 bg-gradient-to-r from-blue-500/10 to-indigo-500/10" : ""}`}
-                                >
-                                    <td className="px-6 py-4">
-                                        <motion.div className="flex items-center"
-                                            initial={{ x: -30, opacity: 0 }}
-                                            animate={{ x: 0, opacity: 1 }}
-                                            transition={{ delay: 0.2 + (index * 0.05), duration: 0.3, ease: "easeOut"}}
-                                        >
-                                            <span className={`font-semibold text-gray-300`}> {data.rank}</span>
-                                        </motion.div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <motion.div className="truncate whitespace-nowrap overflow-hidden text-white font-medium"
-                                            initial={{ x: -50, opacity: 0 }}
-                                            animate={{ x: 0, opacity: 1 }}
-                                            transition={{ delay: 0.25 + (index * 0.05), duration: 0.3, ease: "easeOut"}}>
-                                            <motion.span
-                                                initial={{ x: -20, opacity: 0 }}
-                                                animate={{ x: 0, opacity: 1 }}
-                                                transition={{ delay: 0.3 + (index * 0.05), duration: 0.2}}>
-                                                {data.name}
-                                            </motion.span>
-                                            {data.isMe && (
-                                                <motion.span className="ml-2 text-blue-400 text-sm"
-                                                    initial={{ scale: 0, opacity: 0 }}
-                                                    animate={{ scale: 1, opacity: 1 }}
-                                                    transition={{ delay: 0.4 + (index * 0.05), duration: 0.2, type: "spring", stiffness: 200}}>
-                                                    (Siz)
-                                                </motion.span>
-                                            )}
-                                        </motion.div>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <motion.span className={`font-bold text-lg ${data.rank <= 3 ? "text-yellow-400" : "text-gray-200"}`}
-                                            initial={{ x: 30, opacity: 0 }}
-                                            animate={{ x: 0, opacity: 1 }}
-                                            transition={{ delay: 0.35 + (index * 0.05), duration: 0.3, ease: "easeOut" }}>
-                                            {data.score.toLocaleString()}
-                                        </motion.span>
-                                    </td>
-                                </motion.tr>
-                            ))}
-                        </motion.tbody>
-                    </AnimatePresence>
-                </table>
-            </div>
-        </motion.div>
+      <div className="panel px-6 py-12 text-center">
+        <p className="font-medium">Bu sayfada kimse yok.</p>
+        <p className="mt-1 text-sm text-muted">Başka bir sayfayı deneyin.</p>
+      </div>
     );
+  }
+
+  return (
+    <div className="panel overflow-hidden">
+      <table className="w-full table-fixed">
+        <thead>
+          <tr className="border-b border-hair text-left font-mono text-[11px] tracking-[0.18em] text-faint uppercase">
+            <th className="w-14 px-4 py-3.5 font-normal sm:w-20 sm:px-6">Sıra</th>
+            <th className="px-2 py-3.5 font-normal sm:px-6">Oyuncu</th>
+            <th className="w-24 px-4 py-3.5 text-right font-normal sm:w-36 sm:px-6">
+              Puan
+            </th>
+          </tr>
+        </thead>
+
+        <tbody className="divide-y divide-hair">
+          {entries.map((row, i) => (
+            <motion.tr
+              key={`${current}-${row.rank}`}
+              initial={reduce ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.35,
+                delay: Math.min(i * 0.03, 0.4),
+                ease: [0.16, 1, 0.3, 1],
+              }}
+              className={`transition-colors ${
+                row.isMe ? "bg-accent/[0.07]" : "hover:bg-surface/60"
+              }`}
+            >
+              <td className="px-4 py-4 sm:px-6">
+                <span
+                  className={`tnum text-sm ${
+                    row.isMe ? "font-semibold text-accent" : "text-faint"
+                  }`}
+                >
+                  {row.rank}
+                </span>
+              </td>
+              <td className="truncate px-2 py-4 sm:px-6">
+                <span className="font-medium">{row.name}</span>
+                {row.isMe && (
+                  <span className="ml-2 rounded-full border border-accent/35 bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent">
+                    Siz
+                  </span>
+                )}
+              </td>
+              <td className="px-4 py-4 text-right sm:px-6">
+                <span className="tnum font-semibold">
+                  {row.score.toLocaleString("tr-TR")}
+                </span>
+              </td>
+            </motion.tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }

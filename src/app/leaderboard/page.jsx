@@ -1,87 +1,112 @@
 "use client";
 
-import React from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useLeaderboard } from "../../lib/hooks/useLeaderboard";
-import { motion } from "framer-motion";
-import { Seperator } from "../components/utils";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import CampusMap from "../components/CampusMap";
 import LoadingScreen from "../components/LoadingScreen";
-import Pagination from "./components/Pagination";
-import Leaderboard from "./components/Leaderboard";
+import { Reveal } from "../components/utils";
 import Podium from "../components/Podium";
+import Leaderboard from "./components/Leaderboard";
+import Pagination from "./components/Pagination";
+
+function LeaderboardView() {
+  const router = useRouter();
+  const params = useSearchParams();
+  const page = Math.max(1, parseInt(params.get("page") || "1", 10) || 1);
+
+  const { isLoading, error, formatted } = useLeaderboard(page);
+
+  if (isLoading) return <LoadingScreen />;
+
+  if (error) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col">
+        <Header />
+        <main className="flex flex-1 items-center justify-center px-5">
+          <div className="panel w-full max-w-sm px-6 py-8 text-center">
+            <p className="font-medium">Sıralama yüklenemedi.</p>
+            <p className="mt-1 text-sm text-muted">{error.message}</p>
+            <button
+              onClick={() => router.refresh()}
+              className="btn btn-ghost mt-6 h-11 w-full text-sm"
+            >
+              Tekrar dene
+            </button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  const { page: current, totalPages, totalUsers, userRank, entries } = formatted;
+  const firstPage = current === 1;
+  const rows = firstPage ? entries.slice(3) : entries;
+
+  return (
+    <div className="flex min-h-[100dvh] flex-col">
+      <Header />
+
+      <main className="relative flex-1 overflow-hidden">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[520px]">
+          <CampusMap
+            ambient
+            labels={false}
+            contours={2}
+            flows={false}
+            className="absolute -top-1/3 left-1/2 h-[220%] w-[150%] -translate-x-1/2 sm:w-[110%]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-canvas/40 via-canvas/70 to-canvas" />
+        </div>
+
+        <div className="relative mx-auto max-w-3xl px-5 pt-28 pb-20 sm:px-8 lg:pt-32">
+          <Reveal className="text-center">
+            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+              Lider tablosu
+            </h1>
+            <p className="mt-4 text-muted">
+              {userRank ? (
+                <>
+                  Şu anda <span className="tnum text-ink">{userRank}.</span>{" "}
+                  sıradasınız.
+                </>
+              ) : (
+                "Henüz bir sıralamanız yok."
+              )}
+            </p>
+          </Reveal>
+
+          {firstPage && (
+            <div className="mt-16">
+              <Podium />
+            </div>
+          )}
+
+          <div className="mt-12">
+            <Leaderboard entries={rows} current={current} />
+          </div>
+
+          <Pagination
+            current={current}
+            totalPages={totalPages}
+            totalUsers={totalUsers}
+            onPageChange={(p) => router.push(`/leaderboard?page=${p}`)}
+          />
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
 
 export default function LeaderboardPage() {
-    const router = useRouter();
-    const params = useSearchParams();
-    const page = parseInt(params.get("page") || "1", 10);
-
-    const { isLoading, error, formatted } = useLeaderboard(page);
-
-    if (isLoading) return <LoadingScreen />;
-    if (error) return (
-        <div className="min-h-screen bg-[#1B1740] text-white">
-            <Header />
-            <div className="p-6 max-w-4xl mx-auto pt-24">
-                <p className="text-center text-red-400 text-md">
-                    Hata: {error.message}
-                </p>
-            </div>
-        </div>
-    );
-
-    const { page: current, totalPages, totalUsers, userRank, entries } = formatted;
-
-    const goTo = (p) => router.push(`/leaderboard?page=${p}`);
-
-    return (
-        <div className="min-h-screen text-white">
-
-            <Header />
-            
-            <div className="p-6 max-w-4xl mx-auto space-y-6 pt-24 min-h-screen">
-                <motion.div className="text-center mb-8"
-                    initial={{ y: 30, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 0.6, ease: "easeOut" }}
-                >
-                    <h1 className="text-4xl md:text-5xl mb-2 font-bold tracking-tight text-shadow-lg">
-                        LİDER TABLOSU
-                    </h1>
-                    <motion.p className="text-gray-300 font-semibold"
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.4, duration: 0.5 }}
-                    >
-                        {userRank ? <><span>Şu anda</span> <span className="text-violet-400">{userRank}.</span> <span>sıradasınız.</span></>
-                            : <span>Henüz bir sıralamanız yok.</span>}
-                    </motion.p>
-                </motion.div>
-
-                <Seperator />
-
-                {current === 1 ? (
-                    <div className="-mt-6">
-                        <Podium />
-                        {entries.length > 3 && (
-                            <motion.div className="mt-2 z-50"
-                                initial={{ y: 30, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                transition={{ delay: 0.6, duration: 0.6, ease: "easeOut" }}
-                            >
-                                <Leaderboard entries={entries.slice(3)} current={current} />
-                            </motion.div>
-                        )}
-                    </div>
-                ) : (
-                    <Leaderboard entries={entries} current={current} />
-                )}
-            </div>
-
-            <Pagination current={current} totalPages={totalPages} totalUsers={totalUsers} onPageChange={goTo} entriesLength={entries.length} />
-
-            <Footer />
-        </div>
-    );
+  return (
+    <Suspense fallback={<LoadingScreen />}>
+      <LeaderboardView />
+    </Suspense>
+  );
 }
