@@ -1,48 +1,60 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-import { Trophy, Gamepad2 } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { motion, useScroll, useMotionValueEvent } from "framer-motion";
+
+const NAV = [
+  { href: "/", label: "Ana Sayfa" },
+  { href: "/leaderboard", label: "Lider Tablosu" },
+];
 
 export default function Header() {
-    const pathname = usePathname();
-    const router = useRouter();
-    const [isScrolled, setIsScrolled] = useState(false);
+  const pathname = usePathname();
+  const [lifted, setLifted] = useState(false);
+  const { scrollY } = useScroll();
 
-    const isLeaderboardPage = pathname === "/leaderboard";
+  useMotionValueEvent(scrollY, "change", (v) => setLifted(v > 16));
 
-    useEffect(() => {
-        const handleScroll = () => {
-            const scrollTop = window.scrollY;
-            setIsScrolled(scrollTop > 20);
-        };
+  return (
+    <header
+      className={`fixed inset-x-0 top-0 z-50 h-16 transition-colors duration-300 lg:h-[72px] ${
+        lifted
+          ? "border-b border-hair bg-canvas/85 backdrop-blur-md"
+          : "border-b border-transparent"
+      }`}
+    >
+      <div className="mx-auto flex h-full max-w-[1400px] items-center justify-between px-5 sm:px-8">
+        <Link href="/" className="flex items-center" aria-label="YTUGuessr ana sayfa">
+          <img src="/logo.svg" alt="YTUGuessr" className="h-6 sm:h-7" />
+        </Link>
 
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
-
-    const handleButtonClick = () => {
-        if (isLeaderboardPage) {
-            router.push('/');
-        } else {
-            router.push('/leaderboard');
-        }
-    };
-
-    return (
-        <header className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 text-white transition-all duration-400 ease-in-out border-b
-            ${isScrolled ? 'bg-gray-900/80 backdrop-blur-md border-gray-700/50' : 'border-transparent'}`}>
-
-            <Link className="flex items-center" href="/">
-                <img src="/logo.svg" alt="YTUGuessr Logo" className="h-7" />
-            </Link>
-            
-            <button 
-                className="bg-gradient-to-r from-yellow-500/20 to-yellow-400/15 text-yellow-400 italic font-medium text-sm rounded-md px-2 py-2 text-shadow-md/20 text-shadow-gray-800 hover:bg-yellow-600 transition-all duration-200"
-                onClick={handleButtonClick}>
-                {isLeaderboardPage ? <Gamepad2 size={18} /> : <Trophy size={18} />}
-            </button>
-        </header>
-    );
+        <nav className="flex items-center gap-1 sm:gap-2">
+          {NAV.map((item) => {
+            const active = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={`relative rounded-control px-3 py-2 text-sm font-medium transition-colors sm:px-4 ${
+                  active ? "text-ink" : "text-muted hover:text-ink"
+                }`}
+              >
+                {item.label}
+                {active && (
+                  <motion.span
+                    layoutId="nav-active"
+                    className="absolute inset-x-3 -bottom-px h-px bg-accent sm:inset-x-4"
+                    transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                  />
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+    </header>
+  );
 }

@@ -44,7 +44,7 @@ export default function StartGame() {
   }
 
   return (
-    <div className="mx-4 rounded-2xl p-5 sm:p-6 bg-white/5 backdrop-blur border border-violet-500/20 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_10px_40px_-15px_rgba(0,0,0,.6)]">
+    <div className="mx-4 rounded-2xl p-5 sm:p-6 bg-white/5 backdrop-blur border border-hair shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_10px_40px_-15px_rgba(0,0,0,.6)]">
       <div className="text-center space-y-1 mb-4">
         <h3 className="text-lg font-extrabold text-white">OYUNA BAŞLA</h3>
       </div>
@@ -55,13 +55,13 @@ export default function StartGame() {
             YTÜ E-posta adresi
           </div>
 
-          <div className={`relative rounded-xl bg-[#2a2353]/80 border ${error ? "border-red-500/60" : "border-[#3b3163]"} focus-within:ring-2 focus-within:ring-violet-400/70`}>
+          <div className={`relative rounded-xl bg-canvas-2 border ${error ? "border-red-500/60" : "border-hair"} focus-within:ring-2 focus-within:ring-accent/60`}>
             <input placeholder="ogrenci@std.yildiz.edu.tr" value={mail}
               onChange={(e) => setMail(e.target.value)}
               className=" w-full bg-transparent text-white placeholder-white/40 pl-4 pr-12 py-3 rounded-xl outline-none"
             />
 
-            <button type="submit" className={`absolute right-1 top-1/2 -translate-y-1/2 text-white p-3 rounded-lg ${error ? "bg-red-500/70 disabled" : loading ? "bg-indigo-400 disabled" : isSchoolMail ? "bg-indigo-500" : "bg-white/10 disabled"}`}> 
+            <button type="submit" className={`absolute right-1 top-1/2 -translate-y-1/2 text-white p-3 rounded-lg ${error ? "bg-red-500/70 disabled" : loading ? "bg-accent/70 disabled" : isSchoolMail ? "bg-accent" : "bg-white/10 disabled"}`}> 
               <AnimatePresence mode="wait">
                 <motion.div key={loading ? "loading" : error ? "error" : "default"}
                 initial={{ y: 20, opacity:0}}
