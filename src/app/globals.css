@@ -44,6 +44,8 @@
     /* campusMap.js bu degiskenleri okur. Varsayilan: on plan yogunlugu. */
     --map-line: rgba(199, 224, 205, 0.16);
     --map-fill: rgba(61, 214, 140, 0.05);
+    --map-building: rgba(199, 224, 205, 0.05);
+    --map-path: rgba(199, 224, 205, 0.17);
     --map-road: rgba(199, 224, 205, 0.34);
     --map-highlight: rgba(232, 245, 234, 0.85);
     --map-accent: #3dd68c;
@@ -88,6 +90,8 @@
   .map-ambient {
     --map-line: rgba(199, 224, 205, 0.07);
     --map-fill: rgba(61, 214, 140, 0.022);
+    --map-building: rgba(199, 224, 205, 0.02);
+    --map-path: rgba(199, 224, 205, 0.065);
     --map-road: rgba(199, 224, 205, 0.13);
     --map-highlight: rgba(232, 245, 234, 0.28);
     --map-accent: rgba(61, 214, 140, 0.4);

@@ -21,11 +21,13 @@ export default function Hero() {
           className="pointer-events-none absolute inset-0 z-0 lg:left-1/2"
         >
           {/* fit="slice" kapsayiciyi tamamen kaplar; sag yarim ~1:1 oldugu icin
-              haritanin neredeyse tamami gorunur, kenarlardan az kirpilir. */}
+              haritanin neredeyse tamami gorunur, kenarlardan az kirpilir. Dar
+              ekranda yanlar kirpildigi icin kenardaki etiketler yarim kaliyor;
+              orada etiketler gizli. */}
           <CampusMap
             fit="slice"
             marker={ORTABAHCE}
-            className="absolute inset-0 h-full w-full"
+            className="absolute inset-0 h-full w-full max-lg:[&_text]:hidden"
           />
 
           {/* Mobilde metin haritanin ustunde durdugu icin her yeri karart. */}

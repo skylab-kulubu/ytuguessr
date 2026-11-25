@@ -1,16 +1,16 @@
-import { buildCampusMapSvg } from "@/lib/campusMap";
+import { buildCampusMapLayers } from "@/lib/campusMap";
 
 /* Katman basina tek path uretiliyor; ayni opts icin tekrar hesaplamayalim. */
 const cache = new Map();
 
-function svgFor(opts) {
+function layersFor(opts) {
   const key = JSON.stringify(opts);
-  let svg = cache.get(key);
-  if (!svg) {
-    svg = buildCampusMapSvg(opts);
-    cache.set(key, svg);
+  let layers = cache.get(key);
+  if (!layers) {
+    layers = buildCampusMapLayers(opts);
+    cache.set(key, layers);
   }
-  return svg;
+  return layers;
 }
 
 /**
@@ -26,12 +26,22 @@ export default function CampusMap({
   marker = null,
   fit = "meet",
 }) {
-  const svg = svgFor({ labels, contours, flows, marker, fit });
+  const { base, live } = layersFor({ labels, contours, flows, marker, fit });
 
   return (
-    <div
-      className={`${ambient ? "map-ambient " : ""}${className}`}
-      dangerouslySetInnerHTML={{ __html: svg }}
-    />
+    <div className={`${ambient ? "map-ambient " : ""}${className}`}>
+      <div className="relative h-full w-full">
+        <div className="absolute inset-0" dangerouslySetInnerHTML={{ __html: base }} />
+        {/* Akan isiklar kendi compositor katmaninda: stroke-dashoffset her
+            karede repaint ister, ayni katmanda kalsa binalar ve yuzlerce yol
+            da her karede yeniden rasterize edilirdi. */}
+        {live && (
+          <div
+            className="absolute inset-0 will-change-transform"
+            dangerouslySetInnerHTML={{ __html: live }}
+          />
+        )}
+      </div>
+    </div>
   );
 }
