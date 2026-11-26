@@ -2,7 +2,8 @@ name: Frontend
 
 # PR and push: the build check (npm ci + next build) runs first.
 # PR: build the image, boot it and probe HTTP (no push).
-# frontend push: ghcr.io/skylab-kulubu/ytuguessr-frontend:latest + :<sha> + :production; when the build and the
+# Transition: the branch frontend is being renamed to production; until the rename, both run the same way.
+# production push: ghcr.io/skylab-kulubu/ytuguessr-frontend:latest + :<sha> + :production; when the build and the
 #   probe pass, the Dokploy deploy hook redeploys the Guessr frontend (guessr.yildizskylab.com goes live
 #   automatically) and the run waits until the site serves this commit.
 #   Until the hook secret exists (first setup: ops wizard guessr-frontend), the run pushes the image and deploys
@@ -21,9 +22,9 @@ name: Frontend
 # gate, which reads the production environment's deployments, never sees a frontend commit.
 on:
   pull_request:
-    branches: [frontend]
+    branches: [frontend, production]
   push:
-    branches: [frontend]
+    branches: [frontend, production]
   workflow_dispatch:
 
 permissions:
@@ -74,7 +75,7 @@ jobs:
           HOOK_SET: ${{ secrets.DOKPLOY_FRONTEND_DEPLOY_HOOK != '' }}
           PAUSED: ${{ vars.DEPLOY_PAUSED }}
         run: |
-          if [ "$EVENT" = pull_request ] || [ "$REF" != refs/heads/frontend ]; then
+          if [ "$EVENT" = pull_request ] || { [ "$REF" != refs/heads/production ] && [ "$REF" != refs/heads/frontend ]; }; then
             echo "deploy=false" >> "$GITHUB_OUTPUT"
             echo "production=false" >> "$GITHUB_OUTPUT"
             exit 0
@@ -172,13 +173,13 @@ jobs:
           echo "health: $health"
           [ "$health" = healthy ] || { docker logs app; exit 1; }
       - uses: docker/login-action@v3
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/frontend'
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/production' || github.ref == 'refs/heads/frontend')
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push the probed image to GHCR
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/frontend'
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/production' || github.ref == 'refs/heads/frontend')
         env:
           SHA: ${{ github.sha }}
           PRODUCTION: ${{ needs.gate.outputs.production }}
