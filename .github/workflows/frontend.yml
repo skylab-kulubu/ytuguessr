@@ -7,6 +7,12 @@ name: Frontend
 #   automatically) and the run waits until the site serves this commit.
 #   Until the hook secret exists (first setup: ops wizard guessr-frontend), the run pushes the image and deploys
 #   nothing.
+# Pause (e.g. during an event): repository variable DEPLOY_PAUSED = true. Runs still build, probe and push :latest and
+#   :<sha>, but neither move :production nor deploy, so nothing new can go live (not even by a manual Dokploy deploy).
+#   On:  gh variable set DEPLOY_PAUSED -R skylab-kulubu/ytuguessr --body true
+#   Off: gh variable delete DEPLOY_PAUSED -R skylab-kulubu/ytuguessr
+#   After "off", the last paused commit goes live with a new push or by re-running its run (Actions -> Frontend ->
+#   the run -> Re-run all jobs).
 # Manual run (Actions -> Frontend -> Run workflow, branch frontend): the same as a push.
 # The backend has its own workflow (GHCR on the backend branch, secret DOKPLOY_DEPLOY_HOOK, environment
 # production). This one uses DOKPLOY_FRONTEND_DEPLOY_HOOK and the environment guessr-frontend, so the backend's
@@ -51,23 +57,41 @@ jobs:
         run: npm run build
 
   # Decides whether this run goes live: deploy=true on a frontend push or a manual run of frontend, once the
-  # Dokploy deploy hook is set.
+  # Dokploy deploy hook is set and deploys are not paused. production=true when :production may move.
   gate:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       deploy: ${{ steps.check.outputs.deploy }}
+      production: ${{ steps.check.outputs.production }}
     steps:
       - id: check
         env:
           EVENT: ${{ github.event_name }}
           REF: ${{ github.ref }}
           HOOK_SET: ${{ secrets.DOKPLOY_FRONTEND_DEPLOY_HOOK != '' }}
+          PAUSED: ${{ vars.DEPLOY_PAUSED }}
         run: |
           if [ "$EVENT" = pull_request ] || [ "$REF" != refs/heads/frontend ]; then
             echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "production=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          if [ "$PAUSED" = true ]; then
+            echo "::warning::Deploys are paused (repository variable DEPLOY_PAUSED=true): :latest and :<sha> are pushed, :production and the site stay as they are."
+            {
+              echo "### Not deployed: deploys are paused"
+              echo
+              echo "Repository variable \`DEPLOY_PAUSED\` is \`true\`. The image was pushed as :latest and :<sha>;"
+              echo ":production and the live site did not change."
+              echo
+              echo "Resume: \`gh variable delete DEPLOY_PAUSED -R $GITHUB_REPOSITORY\`, then push again or re-run this run."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "production=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "production=true" >> "$GITHUB_OUTPUT"
           if [ "$HOOK_SET" != true ]; then
             echo "::warning::DOKPLOY_FRONTEND_DEPLOY_HOOK is not set: the image is pushed, nothing is deployed."
             {
@@ -155,8 +179,13 @@ jobs:
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/frontend'
         env:
           SHA: ${{ github.sha }}
+          PRODUCTION: ${{ needs.gate.outputs.production }}
         run: |
-          for tag in latest "$SHA" production; do
+          tags="latest $SHA"
+          if [ "$PRODUCTION" = true ]; then
+            tags="$tags production"
+          fi
+          for tag in $tags; do
             docker tag ytuguessr-frontend:ci "$IMAGE:$tag"
             docker push "$IMAGE:$tag"
           done
