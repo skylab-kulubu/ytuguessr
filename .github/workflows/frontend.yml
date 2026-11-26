@@ -2,7 +2,6 @@ name: Frontend
 
 # PR and push: the build check (npm ci + next build) runs first.
 # PR: build the image, boot it and probe HTTP (no push).
-# Transition: the branch frontend is being renamed to production; until the rename, both run the same way.
 # production push: ghcr.io/skylab-kulubu/ytuguessr-frontend:latest + :<sha> + :production; when the build and the
 #   probe pass, the Dokploy deploy hook redeploys the Guessr frontend (guessr.yildizskylab.com goes live
 #   automatically) and the run waits until the site serves this commit.
@@ -14,17 +13,17 @@ name: Frontend
 #   Off: gh variable delete DEPLOY_PAUSED -R skylab-kulubu/ytuguessr
 #   After "off", the last paused commit goes live with a new push or by re-running its run (Actions -> Frontend ->
 #   the run -> Re-run all jobs).
-# Deploy again by hand: re-run a frontend run (Actions -> Frontend -> the run -> Re-run all jobs); it behaves like the
-#   push. workflow_dispatch stays for later, but GitHub offers "Run workflow" only for workflows on the default branch
-#   (main), and this file lives on frontend.
+# Deploy again by hand: re-run a production run (Actions -> Frontend -> the run -> Re-run all jobs); it behaves like
+#   the push. workflow_dispatch stays for later, but GitHub offers "Run workflow" only for workflows on the default
+#   branch (main), and this file lives on production. (The branch was called frontend until 2026-11-26.)
 # The backend has its own workflow (GHCR on the backend branch, secret DOKPLOY_DEPLOY_HOOK, environment
 # production). This one uses DOKPLOY_FRONTEND_DEPLOY_HOOK and the environment guessr-frontend, so the backend's
-# gate, which reads the production environment's deployments, never sees a frontend commit.
+# gate, which reads the production environment's deployments, never sees a commit of this branch.
 on:
   pull_request:
-    branches: [frontend, production]
+    branches: [production]
   push:
-    branches: [frontend, production]
+    branches: [production]
   workflow_dispatch:
 
 permissions:
@@ -59,7 +58,7 @@ jobs:
           NEXT_TELEMETRY_DISABLED: 1
         run: npm run build
 
-  # Decides whether this run goes live: deploy=true on a frontend push (or its re-run), once the
+  # Decides whether this run goes live: deploy=true on a production push (or its re-run), once the
   # Dokploy deploy hook is set and deploys are not paused. production=true when :production may move.
   gate:
     runs-on: ubuntu-latest
@@ -75,7 +74,7 @@ jobs:
           HOOK_SET: ${{ secrets.DOKPLOY_FRONTEND_DEPLOY_HOOK != '' }}
           PAUSED: ${{ vars.DEPLOY_PAUSED }}
         run: |
-          if [ "$EVENT" = pull_request ] || { [ "$REF" != refs/heads/production ] && [ "$REF" != refs/heads/frontend ]; }; then
+          if [ "$EVENT" = pull_request ] || [ "$REF" != refs/heads/production ]; then
             echo "deploy=false" >> "$GITHUB_OUTPUT"
             echo "production=false" >> "$GITHUB_OUTPUT"
             exit 0
@@ -173,13 +172,13 @@ jobs:
           echo "health: $health"
           [ "$health" = healthy ] || { docker logs app; exit 1; }
       - uses: docker/login-action@v3
-        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/production' || github.ref == 'refs/heads/frontend')
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/production'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push the probed image to GHCR
-        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/production' || github.ref == 'refs/heads/frontend')
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/production'
         env:
           SHA: ${{ github.sha }}
           PRODUCTION: ${{ needs.gate.outputs.production }}
