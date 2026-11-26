@@ -29,13 +29,13 @@ export default function Stats() {
                 {stats.map((stat, i) => {
                     const IconComponent = stat.icon;
                     return (
-                        <motion.div key={i} className="rounded-2xl p-4 md:p-6 bg-white/5 backdrop-blur border border-violet-500/20 shadow-lg flex flex-col items-center text-center space-y-2 md:space-y-3"
+                        <motion.div key={i} className="rounded-2xl p-4 md:p-6 bg-white/5 backdrop-blur border border-hair shadow-lg flex flex-col items-center text-center space-y-2 md:space-y-3"
                             initial={{ y: 20, opacity: 0 }}
                             whileInView={{ y: 0, opacity: 1 }}
                             transition={{ duration: 0.6, delay: i * 0.3 }}
                             viewport={{ once: true }}
                         >
-                            <IconComponent className="w-8 h-8 md:w-10 md:h-10 text-violet-400" />
+                            <IconComponent className="w-8 h-8 md:w-10 md:h-10 text-white/70" />
                             <div className="text-xl md:text-3xl font-bold text-white">
                                 <CountUp number={stat.value} active={hasEntered} />
                             </div>

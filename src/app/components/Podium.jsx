@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useLeaderboard } from "../../lib/hooks/useLeaderboard";
 import { useState } from "react";
@@ -8,16 +8,18 @@ import { CountUp } from "./utils";
 import { formatNameForPodium } from "../../lib/utils";
 import { ArrowRight } from "lucide-react";
 
-export default function Podium() {
-    let { topThree } = useLeaderboard(1);
+const EMPTY = { name: "-", score: 0 };
+
+/** event verilirse o etkinligin ilk uc oyuncusu. */
+export default function Podium({ event = null }) {
+    const { topThree: top } = useLeaderboard(1, event);
     const [hasEntered, setHasEntered] = useState(false);
     const pathname = usePathname();
 
     const isHome = pathname === '/';
 
-    if (!topThree || topThree.length < 3) {
-        topThree = [{ name: "-", score: 0 }, { name: "-", score: 0 }, { name: "-", score: 0 }];
-    }
+    // Uc kisiden az oyuncu varsa olanlar gosterilir, bos basamaklar "-" kalir.
+    const topThree = [0, 1, 2].map((i) => top?.[i] ?? EMPTY);
 
     return (
         <motion.div className={`w-full max-w-md mx-auto pt-12 ${isHome ? "p-6" : ""}`}
@@ -40,13 +42,13 @@ export default function Podium() {
                             {formatNameForPodium(topThree[1]?.name)}
                         </span>
                     </motion.div>
-                    <motion.div className={`absolute -top-3 left-0 right-0 h-3 bg-gradient-to-br ${isHome ? "from-[#3b327f] to-[#504696]" : "from-[#565187] to-[#696696]"}`}
+                    <motion.div className={`absolute -top-3 left-0 right-0 h-3 bg-gradient-to-br ${isHome ? "from-[#2b3c30] to-[#365a42]" : "from-[#414d45] to-[#4e5c53]"}`}
                         style={{ clipPath: "polygon(10% 0%, 110% 0%, 100% 100%, 0% 100%)", originY: 1 }}
                         initial={{ scaleY: 0 }}
                         animate={hasEntered ? { scaleY: 1 } : undefined}
                         transition={{ duration: 0.8, delay: 0.8 }}
                     />
-                    <motion.div className={`h-36 bg-gradient-to-b shadow-lg ${isHome ? "from-[#2f2868] to-[#1f1a47]" : "from-[#36315c] to-[#262249]"}`}
+                    <motion.div className={`h-36 bg-gradient-to-b shadow-lg ${isHome ? "from-[#232e26] to-[#141a16]" : "from-[#262e28] to-[#181e1a]"}`}
                         initial={{ scaleY: 0 }}
                         animate={hasEntered ? { scaleY: 1 } : undefined}
                         transition={{ duration: 0.8, delay: 0.8 }}
@@ -85,13 +87,13 @@ export default function Podium() {
                             {formatNameForPodium(topThree[0]?.name)}
                         </span>
                     </motion.div>
-                    <motion.div className={`absolute -top-3 left-0 right-0 h-3 bg-gradient-to-b ${isHome ? "from-[#4e4497] to-[#5d53a9]" : "from-[#696696] to-[#7d7aab]"}`}
+                    <motion.div className={`absolute -top-3 left-0 right-0 h-3 bg-gradient-to-b ${isHome ? "from-[#375c43] to-[#3f6b4d]" : "from-[#4e5c53] to-[#5f6f65]"}`}
                         style={{ clipPath: "polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%)", originY: 1 }}
                         initial={{ scaleY: 0 }}
                         animate={hasEntered ? { scaleY: 1 } : undefined}
                         transition={{ duration: 1.0, delay: 0.4 }}
                     />
-                    <motion.div className={`h-48 bg-gradient-to-b shadow-xl ${isHome ? "from-[#3a327a] to-[#1f1a47]" : "from-[#4d467a] to-[#262249] border-[#3F3A69]/80"}`}
+                    <motion.div className={`h-48 bg-gradient-to-b shadow-xl ${isHome ? "from-[#2a3a2f] to-[#141a16]" : "from-[#3a4640] to-[#181e1a] border-[#313a33]/80"}`}
                         initial={{ scaleY: 0 }}
                         animate={hasEntered ? { scaleY: 1 } : undefined}
                         transition={{ duration: 1.0, delay: 0.4 }}
@@ -130,13 +132,13 @@ export default function Podium() {
                             {formatNameForPodium(topThree[2]?.name)}
                         </span>
                     </motion.div>
-                    <motion.div className={`absolute -top-3 left-0 right-0 h-3 bg-gradient-to-bl ${isHome ? "from-[#3b327f] to-[#504696]" : "from-[#565187] to-[#696696]"}`}
+                    <motion.div className={`absolute -top-3 left-0 right-0 h-3 bg-gradient-to-bl ${isHome ? "from-[#2b3c30] to-[#365a42]" : "from-[#414d45] to-[#4e5c53]"}`}
                         style={{ clipPath: "polygon(0% 0%, 90% 0%, 100% 100%, 0% 100%)", originY: 1 }}
                         initial={{ scaleY: 0 }}
                         animate={hasEntered ? { scaleY: 1 } : undefined}
                         transition={{ duration: 0.6, delay: 1.2 }}
                     />
-                    <motion.div className={`h-28 bg-gradient-to-b shadow-lg ${isHome ? "from-[#2f2868] to-[#1f1a47]" : "from-[#36315c] to-[#262249]"}`}
+                    <motion.div className={`h-28 bg-gradient-to-b shadow-lg ${isHome ? "from-[#232e26] to-[#141a16]" : "from-[#262e28] to-[#181e1a]"}`}
                         initial={{ scaleY: 0 }}
                         animate={hasEntered ? { scaleY: 1 } : undefined}
                         transition={{ duration: 0.6, delay: 1.2 }}
@@ -167,9 +169,9 @@ export default function Podium() {
                     animate={hasEntered ? { opacity: 1 } : undefined}
                     transition={{ duration: 0.6, ease: "easeOut", delay: 4.0 }}
                 >
-                    <a href="/leaderboard" className="mx-8 rounded-2xl p-3 bg-white/5 backdrop-blur border border-violet-500/20 shadow-lg flex items-center justify-center gap-3 text-white font-semibold hover:bg-white/10 transition-all duration-200 group">
+                    <a href="/leaderboard" className="mx-8 rounded-2xl p-3 bg-white/5 backdrop-blur border border-hair shadow-lg flex items-center justify-center gap-3 text-white font-semibold hover:bg-white/10 transition-all duration-200 group">
                         Lider Tablosunu İncele
-                        <ArrowRight className="w-5 h-5 text-violet-400 group-hover:text-violet-300 transition-colors" />
+                        <ArrowRight className="w-5 h-5 text-muted group-hover:text-ink transition-colors" />
                     </a>
                 </motion.div>
             )}

@@ -1,150 +1,190 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { motion, AnimatePresence } from "framer-motion";
-import { Compass, MapPinOff, Trophy } from "lucide-react";
+import { useCallback, useEffect, useRef } from "react";
+import { animate, motion, useReducedMotion } from "framer-motion";
+import RoundStrip from "../hud/RoundStrip";
+import { ArrowRight } from "../Glyph";
+import { MAX_ROUND_SCORE, ROUND_COUNT } from "@/lib/constants";
 
 const ResultMap = dynamic(() => import("./ResultMap"), {
   ssr: false,
-  loading: () => (
-    <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 px-6 py-8 text-center text-white/75" />
-  ),
+  loading: () => <div className="h-full w-full bg-canvas-2" />,
 });
 
-export default function ResultModal({ score = 0, distance = null, formattedDistance = null, guessCoords = null, correctCoords = null, questionNumber = 1, maxQuestions = 5, onNext, onSummary }) {
-  const lastQuestion = questionNumber >= maxQuestions;
-  const scoreValue = Number.isFinite(score) ? Math.round(score) : 0;
-  const scoreDisplay = scoreValue.toLocaleString("tr-TR");
+const EASE = [0.16, 1, 0.3, 1];
+const pad = (n) => String(n).padStart(2, "0");
+const format = (n) => Math.round(n).toLocaleString("tr-TR");
 
-  const clampedQuestion = Math.min(Math.max(questionNumber, 0), maxQuestions);
-  const scoreProgressPercent = Math.min(Math.round((scoreValue / 1000) * 100), 100);
-  const showMap = scoreValue > 0;
+/** Baslik puana degil mesafeye gore: oyuncuya neyin iyi gittigini soyler. */
+function verdict(distanceKm, timedOut) {
+  if (timedOut) return "Süre doldu";
+  const m = distanceKm * 1000;
+  if (m <= 15) return "Tam isabet";
+  if (m <= 50) return "Neredeyse oradaydın";
+  if (m <= 150) return "Yakın";
+  if (m <= 500) return "Biraz uzak";
+  return "Kampüsün öbür ucu";
+}
+
+/** Puani sayarak yazar; her karede React render'i yerine dogrudan metni gunceller. */
+function CountUp({ value, reduce }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const show = (v) => {
+      el.textContent = format(v);
+    };
+    if (reduce) {
+      show(value);
+      return;
+    }
+    const controls = animate(0, value, { duration: 0.9, delay: 0.35, ease: EASE, onUpdate: show });
+    return () => controls.stop();
+  }, [value, reduce]);
+
+  return <span ref={ref}>{reduce ? format(value) : "0"}</span>;
+}
+
+export default function ResultModal({
+  score = 0,
+  totalScore = null,
+  distanceKm = null,
+  formattedDistance = null,
+  guessCoords = null,
+  correctCoords = null,
+  questionNumber = 1,
+  maxQuestions = ROUND_COUNT,
+  rounds = [],
+  onNext,
+  onSummary,
+}) {
+  const reduce = useReducedMotion();
+  const last = questionNumber >= maxQuestions;
+  const value = Number.isFinite(score) ? Math.round(score) : 0;
+  const round = Math.min(Math.max(questionNumber, 1), maxQuestions);
+  /* Sure dolunca sunucu mesafeyi -1 dondurur ve isareti yok sayar. */
+  const timedOut = !(distanceKm >= 0);
+  const advance = last ? onSummary : onNext;
+
+  /* Onaylarken basili tutulan Enter/Bosluk sonucu okumadan gecirmesin. */
+  const armed = useRef(false);
+  useEffect(() => {
+    const id = setTimeout(() => {
+      armed.current = true;
+    }, 450);
+    return () => clearTimeout(id);
+  }, []);
+
+  const go = useCallback(() => {
+    if (armed.current) advance();
+  }, [advance]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.repeat || (e.key !== "Enter" && e.key !== " ")) return;
+      if (e.target instanceof Element && e.target.closest("button, a, input")) return;
+      e.preventDefault();
+      go();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [go]);
 
   return (
-    <AnimatePresence>
-      <motion.div key="overlay" className="fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-sm"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
+    <motion.div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="round-title"
+      className="fixed inset-0 z-50 bg-canvas"
+      initial={reduce ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.25 }}
+    >
+      {/* isolate: Leaflet panelerinin z-index'i (400+) disari sizip paneli ortmesin. */}
+      <div className="absolute inset-x-0 top-0 isolate h-[58dvh] lg:h-full">
+        <ResultMap
+          guess={timedOut ? null : guessCoords}
+          actual={correctCoords}
+          distance={timedOut ? null : formattedDistance}
+        />
+      </div>
+
+      <motion.section
+        className="result-panel"
+        initial={reduce ? false : { opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1, ease: EASE }}
       >
-        <motion.div key="modal" className="relative w-full max-w-2xl mx-8"
-          initial={{ scale: 0.9, opacity: 0, y: 20 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.9, opacity: 0, y: 20 }}
-          transition={{ ease: "easeOut", duration: 0.4 }}
+        <div className="flex items-center justify-between gap-4">
+          <p className="hud-label tnum">
+            Tur {pad(round)}
+            <span className="text-faint">/{pad(maxQuestions)}</span>
+          </p>
+          <RoundStrip rounds={rounds} />
+        </div>
+
+        <h2 id="round-title" className="mt-5 text-[1.625rem] leading-tight font-semibold tracking-tight text-balance">
+          {verdict(distanceKm, timedOut)}
+        </h2>
+
+        <p className="mt-4 flex items-baseline gap-2">
+          <span className="tnum text-6xl font-bold tracking-[-0.03em]">
+            <CountUp value={value} reduce={reduce} />
+          </span>
+          <span className="tnum text-sm text-faint">/ {format(MAX_ROUND_SCORE)} puan</span>
+        </p>
+
+        <div className="score-scale mt-4" aria-hidden="true">
+          <motion.div
+            className="score-scale__fill"
+            initial={reduce ? false : { scaleX: 0 }}
+            animate={{ scaleX: value / MAX_ROUND_SCORE }}
+            transition={{ duration: 0.9, delay: 0.35, ease: EASE }}
+          />
+        </div>
+
+        <dl className="mt-6 grid grid-cols-2 gap-4 border-t border-hair pt-4">
+          <div>
+            <dt className="hud-label">Sapma</dt>
+            <dd className="tnum mt-1.5 text-ink">{timedOut ? "Tahmin yok" : formattedDistance}</dd>
+          </div>
+          <div>
+            <dt className="hud-label">Toplam</dt>
+            <dd className="tnum mt-1.5 text-ink">
+              {Number.isFinite(totalScore) ? format(totalScore) : "-"}
+            </dd>
+          </div>
+        </dl>
+
+        <ul className="mt-5 flex gap-5 text-xs text-muted">
+          {!timedOut && (
+            <li className="flex items-center gap-2">
+              <span aria-hidden="true" className="legend-dot bg-marker" />
+              Tahminin
+            </li>
+          )}
+          <li className="flex items-center gap-2">
+            <span aria-hidden="true" className="legend-dot bg-accent" />
+            Doğru konum
+          </li>
+        </ul>
+
+        <button
+          type="button"
+          autoFocus
+          onClick={go}
+          className="btn btn-primary mt-6 h-12 w-full justify-between rounded-[8px] px-5 text-base"
         >
-          {/* Background Glow */}
-          <div className="absolute inset-0 -z-10">
-            <div className="absolute inset-0 rounded-xl bg-violet-500/15 blur-3xl" />
-          </div>
-
-          <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/5 mx-4 backdrop-blur-sm shadow-2xl">
-            <div className="p-6 sm:p-8">
-              <div className="flex flex-col gap-6">
-                <div className="flex items-center gap-6">
-                  {/* Score Display */}
-                  <motion.div className="relative"
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.2, duration: 0.5, type: "spring" }}
-                  >
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-violet-500/20 to-indigo-500/15 blur-xs" />
-                    <div className="relative flex h-16 w-20 flex-col items-center justify-center rounded-xl border border-violet-500/30 bg-white/10 text-white">
-                      <Trophy className="h-4 w-4 text-violet-300 mb-1" />
-                      <span className="text-2xl font-bold leading-none">{scoreDisplay}</span>
-                    </div>
-                  </motion.div>
-                  {/* Info Section */}
-                  <div className="flex-1 space-y-2 text-white">
-                    <motion.div
-                      initial={{ y: 10, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.3, duration: 0.4 }}
-                    >
-                      <p className="text-xs font-bold uppercase tracking-wider text-violet-300">
-                        Tur {clampedQuestion} / {maxQuestions}
-                      </p>
-                      <h2 className="text-xl font-bold text-white">
-                        {lastQuestion ? "Oyun Tamamlandı!" : score === 0 ? "Tur Başarısız!" : score > 950 ? "Destansı Başarı!" : "Tur Tamamlandı!"}
-                      </h2>
-                    </motion.div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-start gap-6">
-                  {/* Progress Section */}
-                  <motion.div className="w-full sm:w-40"
-                    initial={{ x: 20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 0.2, duration: 0.4 }}
-                  >
-                    <div className="flex items-center justify-between text-xs font-medium text-white/60 mb-2">
-                      <span>Skor</span>
-                      <span>{scoreValue}/1000</span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                      <motion.div className="h-full rounded-full bg-violet-300/60"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${scoreProgressPercent}%` }}
-                        transition={{ duration: 0.8, ease: "easeOut", delay: 0.5 }}
-                      />
-                    </div>
-                  </motion.div>
-                </div>
-              </div>
-            </div>
-
-            <div className="px-6 pb-6 sm:px-8 sm:pb-8">
-              {showMap ? (
-                <motion.div className="space-y-3"
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.6, duration: 0.4 }}
-                >
-                  {/* Distance Info */}
-                  {formattedDistance && (
-                    <motion.div className="inline-flex items-center gap-2 rounded-lg border border-violet-500/30 bg-violet-500/10 px-4 py-2 text-sm font-medium text-white/90"
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: 0.4, duration: 0.3 }}    
-                      >
-                      <Compass className="h-4 w-4 text-violet-300" />
-                      <span>Mesafe: {formattedDistance}</span>
-                    </motion.div>
-                  )}
-                  <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-violet-500/20 bg-[#1B1740]">
-                    <ResultMap guessCoords={guessCoords} correctCoords={correctCoords} distance={distance} className="h-full w-full" />
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div className="rounded-xl border border-violet-500/20 bg-violet-500/5 px-6 py-8 text-center text-white/75"
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.6, duration: 0.4 }}
-                >
-                  <MapPinOff className="h-8 w-8 mx-auto mb-3 text-violet-300" />
-                  <p className="font-semibold">Harita bilgisi bulunamadı</p>
-                  <p className="mt-1 text-sm text-white/50"> Bu turda tahmin yapılmadı.</p>
-                </motion.div>
-              )}
-            </div>
-
-            <div className="border-t border-white/10 bg-white/5 px-6 py-4 sm:px-8">
-              <motion.button className="group relative w-full overflow-hidden rounded-xl bg-violet-300/10 text-violet-300/60 border border-violet-400/30 px-6 py-3 font-bold shadow-lg"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.7, duration: 0.4 }}
-                onClick={lastQuestion ? onSummary : onNext}
-              >
-                <span className="relative z-10">
-                  {lastQuestion ? "SONUÇLARI GÖR" : "SONRAKİ TUR"}
-                </span>
-              </motion.button>
-            </div>
-
-          </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+          {last ? "Sonuçları gör" : "Sonraki tur"}
+          <span className="flex items-center gap-2.5">
+            <kbd className="kbd kbd--on-accent max-lg:hidden">Enter</kbd>
+            <ArrowRight />
+          </span>
+        </button>
+      </motion.section>
+    </motion.div>
   );
 }

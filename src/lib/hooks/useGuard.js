@@ -14,8 +14,14 @@ export const useGuard = () => {
     const safeGuess = async (coords) => {
         if (guessedRef.current) return;
         guessedRef.current = true;
-        await guessMut.mutateAsync(coords);
-        guessedRef.current = false;
+        try {
+            await guessMut.mutateAsync(coords);
+        } catch {
+            // Hata guessMut.isError ile arayuzde gosteriliyor; tekrar denenebilir.
+        } finally {
+            // Kilit hata sonrasi acik kalirsa ne yeniden deneme ne de sure dolunca otomatik gonderim calisir.
+            guessedRef.current = false;
+        }
     };
 
     /* ------ Sıradaki Soruya Geçme ------ */

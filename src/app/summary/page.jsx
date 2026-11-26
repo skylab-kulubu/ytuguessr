@@ -1,212 +1,152 @@
 "use client";
 
 import { useEffect } from "react";
-import { useSummary } from "../../lib/hooks/useSummary";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import { Seperator } from "../components/utils";
+import { motion, useReducedMotion } from "framer-motion";
+import { RotateCcw, Trophy } from "lucide-react";
+import { useSummary } from "../../lib/hooks/useSummary";
 import Header from "../components/Header";
+import Footer from "../components/Footer";
+import CampusMap from "../components/CampusMap";
 import LoadingScreen from "../components/LoadingScreen";
+import { Reveal } from "../components/utils";
+import { MAX_ROUND_SCORE } from "@/lib/constants";
 
 export default function SummaryPage() {
   const router = useRouter();
+  const reduce = useReducedMotion();
   const { isLoading, error, formatted } = useSummary();
 
+  const expired = error?.response?.status === 400;
+
   useEffect(() => {
-    if (error) {
-      if (error.response?.status === 400) {
-        router.push("/");
-        return;
-      }
-    }
-  }, [error, router]);
+    if (expired) router.push("/");
+  }, [expired, router]);
 
-  if (isLoading) return <LoadingScreen />;
-
-  if (error && error.response?.status === 400) {
+  if (isLoading || expired || (!error && !formatted)) {
     return <LoadingScreen />;
   }
 
-  if (error) return (
-    <div className="min-h-screen bg-[#1B1740] text-white">
-      <Header />
-      <div className="p-6 max-w-4xl mx-auto pt-24">
-        <motion.p className="text-center text-red-400 text-lg"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          Hata: {error.message}
-        </motion.p>
+  if (error) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col">
+        <Header />
+        <main className="flex flex-1 items-center justify-center px-5">
+          <div className="panel w-full max-w-sm px-6 py-8 text-center">
+            <p className="font-medium">Özet yüklenemedi.</p>
+            <p className="mt-1 text-sm text-muted">{error.message}</p>
+            <button
+              onClick={() => router.push("/")}
+              className="btn btn-ghost mt-6 h-11 w-full text-sm"
+            >
+              Ana sayfaya dön
+            </button>
+          </div>
+        </main>
+        <Footer />
       </div>
-    </div>
-  );
-
-  if (!formatted) {
-    return <LoadingScreen />;
+    );
   }
 
   const { summary, guesses } = formatted;
 
   return (
-    <div className="min-h-screen bg-[#1B1740] text-white">
-
+    <div className="flex min-h-[100dvh] flex-col">
       <Header />
-      
-      <div className="p-6 max-w-4xl mx-auto space-y-6 pt-24">
-        <motion.div className="text-center mb-8"
-          initial={{ y: 30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-        >
-          <h1 className="text-4xl md:text-5xl mb-2 font-bold tracking-tight text-shadow-lg">
-            OYUN ÖZETİ
-          </h1>
-          <motion.p className="text-gray-300 font-semibold"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-          >
-            Toplam <span className="text-violet-400">{summary.totalTime}</span> sürede <span className="text-violet-400">{summary.totalScore}</span> puan kazandınız!
-          </motion.p>
-        </motion.div>
 
-        <Seperator />
+      <main className="relative flex-1 overflow-hidden">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[480px] overflow-hidden">
+          <CampusMap
+            ambient
+            labels={false}
+            contours={2}
+            flows={false}
+            className="absolute -top-1/3 left-1/2 h-[220%] w-[150%] -translate-x-1/2 sm:w-[110%]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-canvas/40 via-canvas/70 to-canvas" />
+        </div>
 
-        <motion.div className="bg-slate-100/5 backdrop-blur-sm rounded-xl border border-violet-500/20 overflow-hidden shadow-2xl mb-6"
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: "auto", opacity: 1 }}
-          transition={{ duration: 0.8, ease: "easeOut", height: { duration: 0.6 }, opacity: { duration: 0.4, delay: 0.2 } }}
-        >
-          <div className="overflow-x-auto">
-            <table className="w-full table-fixed border-collapse">
-              <motion.thead
-                initial={{ y: -20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3, duration: 0.5 }}
-              >
-                <tr className="border-b border-violet-500/30">
-                  <th className="w-1/3 px-6 py-4 text-center font-bold text-violet-400">Toplam Mesafe</th>
-                  <th className="w-1/3 px-6 py-4 text-center font-bold text-violet-400">Toplam Süre</th>
-                  <th className="w-1/3 px-6 py-4 text-center font-bold text-violet-400">Toplam Puan</th>
-                </tr>
-              </motion.thead>
-              <motion.tbody
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.3, ease: "easeOut" }}
-              >
-                <motion.tr className="border-b border-violet-500/20 hover:bg-violet-500/10 transition-colors duration-200"
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  transition={{ delay: 0.5, duration: 0.3, ease: "easeOut" }}
-                >
-                  <td className="px-6 py-4 text-center text-white font-semibold">{summary.totalDistance}</td>
-                  <td className="px-6 py-4 text-center text-white font-semibold">{summary.totalTime}</td>
-                  <td className="px-6 py-4 text-center text-violet-200 font-bold text-lg">{summary.totalScore}</td>
-                </motion.tr>
-              </motion.tbody>
-            </table>
-          </div>
-        </motion.div>
+        <div className="relative mx-auto max-w-3xl px-5 pt-28 pb-20 sm:px-8 lg:pt-32">
+          <Reveal className="text-center">
+            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+              Oyun özeti
+            </h1>
+            <p className="tnum mt-6 text-6xl font-bold tracking-tight sm:text-7xl">
+              {summary.totalScore.toLocaleString("tr-TR")}
+            </p>
+            <p className="mt-2 text-sm text-faint">toplam puan</p>
+          </Reveal>
 
-        <motion.div
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: "auto", opacity: 1 }}
-          transition={{
-            duration: 0.8,
-            ease: "easeOut",
-            height: { duration: 0.6 },
-            opacity: { duration: 0.4, delay: 0.6 }
-          }}
-          className="bg-white/5 backdrop-blur-sm rounded-xl border border-violet-500/20 overflow-hidden shadow-2xl"
-        >
-          <div className="overflow-x-auto">
-            <table className="w-full table-fixed border-collapse">
-              <motion.thead
-                initial={{ y: -20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.8, duration: 0.5 }}
-              >
-                <tr className="border-b border-violet-500/30">
-                  <th className="w-1/12 px-6 py-4 text-left font-bold text-violet-400">#</th>
-                  <th className="w-4/12 px-6 py-4 text-left font-bold text-violet-400">Mesafe</th>
-                  <th className="w-4/12 px-6 py-4 text-left font-bold text-violet-400">Süre</th>
-                  <th className="w-3/12 px-6 py-4 text-right font-bold text-violet-400">Puan</th>
-                </tr>
-              </motion.thead>
-              <AnimatePresence mode="wait">
-                <motion.tbody
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, ease: "easeOut", delay: 0.9 }}
-                >
-                  {guesses.map((g, index) => (
-                    <motion.tr key={index} className="border-b border-violet-500/20 hover:bg-violet-500/10 transition-colors duration-200"
-                      initial={{ height: 0, opacity: 0, y: 20 }}
-                      animate={{ height: "auto", opacity: 1, y: 0 }}
-                      transition={{ delay: 1.0 + (index * 0.1), duration: 0.3, ease: "easeOut" }}
-                    >
-                      <td className="px-6 py-4">
-                        <motion.div
-                          className="flex items-center"
-                          initial={{ x: -30, opacity: 0 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          transition={{ delay: 1.1 + (index * 0.1), duration: 0.3, ease: "easeOut" }}
-                        >
-                          <span className="font-semibold text-gray-300">{index + 1}</span>
-                        </motion.div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <motion.span className="text-white font-medium"
-                          initial={{ x: -50, opacity: 0 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          transition={{ delay: 1.15 + (index * 0.1), duration: 0.3, ease: "easeOut" }}
-                        >
-                          {g.distance}
-                        </motion.span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <motion.span className="text-white font-medium"
-                          initial={{ x: -30, opacity: 0 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          transition={{ delay: 1.2 + (index * 0.1), duration: 0.3, ease: "easeOut" }}
-                        >
-                          {g.time}
-                        </motion.span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <motion.span className="font-bold text-lg text-violet-200"
-                          initial={{ x: 30, opacity: 0 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          transition={{ delay: 1.25 + (index * 0.1), duration: 0.3, ease: "easeOut" }}
-                        >
-                          {g.score}
-                        </motion.span>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </motion.tbody>
-              </AnimatePresence>
-            </table>
-          </div>
-        </motion.div>
+          <Reveal delay={0.1} className="mt-12">
+            <div className="panel grid grid-cols-2 divide-x divide-hair">
+              <div className="px-5 py-6 text-center">
+                <p className="tnum text-2xl font-semibold">{summary.totalDistance}</p>
+                <p className="mt-1.5 text-sm text-muted">toplam sapma</p>
+              </div>
+              <div className="px-5 py-6 text-center">
+                <p className="tnum text-2xl font-semibold">{summary.totalTime}</p>
+                <p className="mt-1.5 text-sm text-muted">toplam süre</p>
+              </div>
+            </div>
+          </Reveal>
 
-        <motion.div className="flex justify-center space-x-4 pt-8"
-          initial={{ y: 30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 1.5, duration: 0.5, ease: "easeOut" }}
-        >
-          <button onClick={() => router.push("/")}
-            className="px-6 py-3 bg-violet-400/20 text-violet-400 border border-violet-400/30 font-semibold rounded-xl shadow-lg">
-            Yeniden Oyna
-          </button>
-          <button onClick={() => router.push("/leaderboard")}
-            className="px-6 py-3 bg-yellow-400/20 text-yellow-400 border border-yellow-400/30 font-semibold rounded-xl shadow-lg transform">
-            Lider Tablosu
-          </button>
-        </motion.div>
-      </div>
+          <Reveal delay={0.15} className="mt-12">
+            <h2 className="text-xl font-semibold tracking-tight">Turlar</h2>
+
+            <ol className="mt-5 divide-y divide-hair border-t border-hair">
+              {guesses.map((g, i) => {
+                const ratio = Math.min(g.score / MAX_ROUND_SCORE, 1);
+                return (
+                  <li key={i} className="relative">
+                    <div className="flex items-baseline gap-4 py-5">
+                      <span className="tnum w-6 shrink-0 text-sm text-faint">
+                        {i + 1}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium">{g.distance}</p>
+                        <p className="tnum mt-1 text-sm text-muted">{g.time}</p>
+                      </div>
+                      <span className="tnum text-lg font-semibold">{g.score}</span>
+                    </div>
+
+                    {/* Cizginin uzunlugu turdaki puani gosterir. */}
+                    <motion.span
+                      aria-hidden="true"
+                      className="absolute bottom-0 left-0 block h-px bg-muted"
+                      initial={reduce ? { width: `${ratio * 100}%` } : { width: 0 }}
+                      animate={{ width: `${ratio * 100}%` }}
+                      transition={{
+                        duration: 0.7,
+                        delay: 0.3 + i * 0.08,
+                        ease: [0.16, 1, 0.3, 1],
+                      }}
+                    />
+                  </li>
+                );
+              })}
+            </ol>
+          </Reveal>
+
+          <Reveal delay={0.2} className="mt-12 flex flex-col gap-3 sm:flex-row">
+            <button
+              onClick={() => router.push("/")}
+              className="btn btn-primary h-12 flex-1 text-base"
+            >
+              <RotateCcw className="h-4 w-4" strokeWidth={2} />
+              Yeniden oyna
+            </button>
+            <button
+              onClick={() => router.push("/leaderboard")}
+              className="btn btn-ghost h-12 flex-1 text-base"
+            >
+              <Trophy className="h-4 w-4" strokeWidth={2} />
+              Lider tablosu
+            </button>
+          </Reveal>
+        </div>
+      </main>
+
+      <Footer />
     </div>
   );
 }
