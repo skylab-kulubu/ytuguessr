@@ -48,8 +48,11 @@ const paint = (className, extra) => ({
 
 const NO_STROKE = { stroke: false };
 
-/* Modul sabiti olmali: react-leaflet pathOptions'i referansla karsilastirir;
-   her render'da yeni nesne her katmana setStyle cagirip SVG'yi yeniden boyatir. */
+/* Katmanlara pathOptions ile degil prop olarak verilir: Leaflet className ve
+   interactive'i yalniz SVG yolu ilk cizilirken okur. pathOptions katman
+   eklendikten sonra setStyle ile gelir ve sinif eklemez; production'da yollar
+   Leaflet'in varsayilan mavisinde kaliyordu (dev'de StrictMode katmani yeniden
+   ekledigi icin gorunmuyordu). */
 const STYLE = {
   ground: paint("cm-ground", NO_STROKE),
   green: paint("cm-green", NO_STROKE),
@@ -136,25 +139,25 @@ function Attribution() {
 const CampusLayers = memo(function CampusLayers({ labels = true }) {
   return (
     <>
-      <Polygon positions={CAMPUS.boundary} pathOptions={STYLE.ground} />
-      <Polygon positions={CAMPUS.green} pathOptions={STYLE.green} />
-      <Polygon positions={CAMPUS.parking} pathOptions={STYLE.parking} />
-      <Polygon positions={CAMPUS.pitch} pathOptions={STYLE.pitch} />
-      <Polygon positions={CAMPUS.water} pathOptions={STYLE.water} />
-      <Polygon positions={CAMPUS.buildings} pathOptions={STYLE.building} />
-      <Polyline positions={CAMPUS.paths} pathOptions={STYLE.path} />
-      <Polyline positions={CAMPUS.service} pathOptions={STYLE.service} />
-      <Polyline positions={CAMPUS.roads} pathOptions={STYLE.road} />
-      <Polygon positions={CAMPUS.kisla} pathOptions={STYLE.kisla} />
-      <Polyline positions={CAMPUS.court} pathOptions={STYLE.court} />
-      <Polygon positions={MASK} pathOptions={STYLE.mask} />
+      <Polygon positions={CAMPUS.boundary} {...STYLE.ground} />
+      <Polygon positions={CAMPUS.green} {...STYLE.green} />
+      <Polygon positions={CAMPUS.parking} {...STYLE.parking} />
+      <Polygon positions={CAMPUS.pitch} {...STYLE.pitch} />
+      <Polygon positions={CAMPUS.water} {...STYLE.water} />
+      <Polygon positions={CAMPUS.buildings} {...STYLE.building} />
+      <Polyline positions={CAMPUS.paths} {...STYLE.path} />
+      <Polyline positions={CAMPUS.service} {...STYLE.service} />
+      <Polyline positions={CAMPUS.roads} {...STYLE.road} />
+      <Polygon positions={CAMPUS.kisla} {...STYLE.kisla} />
+      <Polyline positions={CAMPUS.court} {...STYLE.court} />
+      <Polygon positions={MASK} {...STYLE.mask} />
       {/* Cevre sokaklari maskenin ustunde: soluk renkleri kendi siniflarinda. */}
       {["minor", "major"].map((cls) =>
         CAMPUS.outer[cls].map((band, i) => (
-          <Polyline key={cls + i} positions={band} pathOptions={STYLE.outer[cls][i]} />
+          <Polyline key={cls + i} positions={band} {...STYLE.outer[cls][i]} />
         )),
       )}
-      <Polygon positions={CAMPUS.boundary} pathOptions={STYLE.edge} />
+      <Polygon positions={CAMPUS.boundary} {...STYLE.edge} />
       <Attribution />
       {labels &&
         CAMPUS.labels.map((label, i) => (
