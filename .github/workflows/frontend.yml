@@ -1,0 +1,226 @@
+name: Frontend
+
+# PR and push: the build check (npm ci + next build) runs first.
+# PR: build the image, boot it and probe HTTP (no push).
+# frontend push: ghcr.io/skylab-kulubu/ytuguessr-frontend:latest + :<sha> + :production; when the build and the
+#   probe pass, the Dokploy deploy hook redeploys the Guessr frontend (guessr.yildizskylab.com goes live
+#   automatically) and the run waits until the site serves this commit.
+#   Until the hook secret exists (first setup: ops wizard guessr-frontend), the run pushes the image and deploys
+#   nothing.
+# Pause (e.g. during an event): repository variable DEPLOY_PAUSED = true. Runs still build, probe and push :latest and
+#   :<sha>, but neither move :production nor deploy, so nothing new can go live (not even by a manual Dokploy deploy).
+#   On:  gh variable set DEPLOY_PAUSED -R skylab-kulubu/ytuguessr --body true
+#   Off: gh variable delete DEPLOY_PAUSED -R skylab-kulubu/ytuguessr
+#   After "off", the last paused commit goes live with a new push or by re-running its run (Actions -> Frontend ->
+#   the run -> Re-run all jobs).
+# Manual run (Actions -> Frontend -> Run workflow, branch frontend): the same as a push.
+# The backend has its own workflow (GHCR on the backend branch, secret DOKPLOY_DEPLOY_HOOK, environment
+# production). This one uses DOKPLOY_FRONTEND_DEPLOY_HOOK and the environment guessr-frontend, so the backend's
+# gate, which reads the production environment's deployments, never sees a frontend commit.
+on:
+  pull_request:
+    branches: [frontend]
+  push:
+    branches: [frontend]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One run per branch at a time: production gets the pushes in order.
+concurrency:
+  group: frontend-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # Baked into the client bundle at build time (NEXT_PUBLIC_*). src/lib/api.js appends /game/..., so the value
+  # carries the /api/ prefix.
+  API_URL: https://guessr-api.yildizskylab.com/api/
+  SITE: https://guessr.yildizskylab.com
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      # No unit tests yet: the production build (compile, prerender) is the check.
+      - name: next build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ env.API_URL }}
+          NEXT_TELEMETRY_DISABLED: 1
+        run: npm run build
+
+  # Decides whether this run goes live: deploy=true on a frontend push or a manual run of frontend, once the
+  # Dokploy deploy hook is set and deploys are not paused. production=true when :production may move.
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      deploy: ${{ steps.check.outputs.deploy }}
+      production: ${{ steps.check.outputs.production }}
+    steps:
+      - id: check
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          HOOK_SET: ${{ secrets.DOKPLOY_FRONTEND_DEPLOY_HOOK != '' }}
+          PAUSED: ${{ vars.DEPLOY_PAUSED }}
+        run: |
+          if [ "$EVENT" = pull_request ] || [ "$REF" != refs/heads/frontend ]; then
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "production=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$PAUSED" = true ]; then
+            echo "::warning::Deploys are paused (repository variable DEPLOY_PAUSED=true): :latest and :<sha> are pushed, :production and the site stay as they are."
+            {
+              echo "### Not deployed: deploys are paused"
+              echo
+              echo "Repository variable \`DEPLOY_PAUSED\` is \`true\`. The image was pushed as :latest and :<sha>;"
+              echo ":production and the live site did not change."
+              echo
+              echo "Resume: \`gh variable delete DEPLOY_PAUSED -R $GITHUB_REPOSITORY\`, then push again or re-run this run."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "production=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "production=true" >> "$GITHUB_OUTPUT"
+          if [ "$HOOK_SET" != true ]; then
+            echo "::warning::DOKPLOY_FRONTEND_DEPLOY_HOOK is not set: the image is pushed, nothing is deployed."
+            {
+              echo "### Not deployed: no Dokploy deploy hook"
+              echo
+              echo "The image was pushed (:latest, :<sha>, :production). The Dokploy application and its hook secret"
+              echo "are set up once by the ops wizard guessr-frontend; after that every frontend push deploys."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "deploy=true" >> "$GITHUB_OUTPUT"
+
+  image:
+    needs: [test, gate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/skylab-kulubu/ytuguessr-frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          platforms: linux/amd64
+          tags: ytuguessr-frontend:ci
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ env.API_URL }}
+            GIT_SHA=${{ github.sha }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+      - name: Boot and probe HTTP
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          # The bundle must call the production API, never the local-dev fallback.
+          docker run --rm --entrypoint sh ytuguessr-frontend:ci -c \
+            "grep -rqF '$API_URL' .next/static/chunks && ! grep -rqF 'localhost:8000' .next/static/chunks" \
+            || { echo "bundle does not point to $API_URL"; exit 1; }
+          docker run -d --name app -p 3000:3000 ytuguessr-frontend:ci
+          uid=$(docker exec app id -u)
+          [ "$uid" != 0 ] || { echo "the app runs as root"; exit 1; }
+          ok=''
+          for _ in $(seq 1 60); do
+            code=$(curl -s -o page.html -w '%{http_code}' http://localhost:3000/ || true)
+            if [ "$code" = 200 ] && grep -q '<title>YTUGuessr</title>' page.html; then
+              ok=1
+              break
+            fi
+            sleep 2
+          done
+          if [ -z "$ok" ]; then
+            echo "GET / never returned 200 with the YTUGuessr title (last: $code)"
+            docker logs app
+            exit 1
+          fi
+          echo "GET / -> 200, title YTUGuessr, uid $uid"
+          # The page carries the build id (the commit): the deploy step waits for it on the live site.
+          grep -qF "$SHA" page.html || { echo "GET / does not carry the build id $SHA"; exit 1; }
+          for path in /leaderboard /game /summary "/_next/static/$SHA/_buildManifest.js"; do
+            c=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000$path")
+            echo "GET $path -> $c"
+            [ "$c" = 200 ] || { docker logs app; exit 1; }
+          done
+          # Swarm waits for this health check before it replaces the running task.
+          for _ in $(seq 1 30); do
+            health=$(docker inspect -f '{{.State.Health.Status}}' app)
+            [ "$health" = healthy ] && break
+            sleep 2
+          done
+          echo "health: $health"
+          [ "$health" = healthy ] || { docker logs app; exit 1; }
+      - uses: docker/login-action@v3
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/frontend'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push the probed image to GHCR
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/frontend'
+        env:
+          SHA: ${{ github.sha }}
+          PRODUCTION: ${{ needs.gate.outputs.production }}
+        run: |
+          tags="latest $SHA"
+          if [ "$PRODUCTION" = true ]; then
+            tags="$tags production"
+          fi
+          for tag in $tags; do
+            docker tag ytuguessr-frontend:ci "$IMAGE:$tag"
+            docker push "$IMAGE:$tag"
+          done
+
+  deploy:
+    needs: [gate, image]
+    if: needs.gate.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: guessr-frontend
+      url: https://guessr.yildizskylab.com
+    steps:
+      # The hook redeploys only the Guessr frontend application in Dokploy (it pulls :production).
+      - name: Notify Dokploy
+        env:
+          HOOK: ${{ secrets.DOKPLOY_FRONTEND_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::error::DOKPLOY_FRONTEND_DEPLOY_HOOK is not set: :production was pushed but nothing was deployed."
+            exit 1
+          fi
+          curl -fsS -o /dev/null -X POST "$HOOK"
+      - name: Wait for the site to serve this commit
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          sleep 20
+          for _ in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$SITE/_next/static/$SHA/_buildManifest.js" || true)
+            if [ "$code" = 200 ] && curl -fsS --max-time 10 "$SITE/" | grep -qF "$SHA"; then
+              echo "$SITE serves $SHA"
+              exit 0
+            fi
+            sleep 6
+          done
+          echo "::error::$SITE did not serve $SHA for 6 minutes after the deploy"
+          exit 1
