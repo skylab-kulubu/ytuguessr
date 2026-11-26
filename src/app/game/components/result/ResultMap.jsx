@@ -32,7 +32,9 @@ function MeasureLine({ from, to }) {
     <Polyline
       ref={ref}
       positions={[from, to]}
-      pathOptions={{ interactive: false, className: "cm-result-line", opacity: 1 }}
+      interactive={false}
+      className="cm-result-line"
+      opacity={1}
     />
   );
 }
