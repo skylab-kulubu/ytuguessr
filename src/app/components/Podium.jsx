@@ -8,16 +8,18 @@ import { CountUp } from "./utils";
 import { formatNameForPodium } from "../../lib/utils";
 import { ArrowRight } from "lucide-react";
 
-export default function Podium() {
-    let { topThree } = useLeaderboard(1);
+const EMPTY = { name: "-", score: 0 };
+
+/** event verilirse o etkinligin ilk uc oyuncusu. */
+export default function Podium({ event = null }) {
+    const { topThree: top } = useLeaderboard(1, event);
     const [hasEntered, setHasEntered] = useState(false);
     const pathname = usePathname();
 
     const isHome = pathname === '/';
 
-    if (!topThree || topThree.length < 3) {
-        topThree = [{ name: "-", score: 0 }, { name: "-", score: 0 }, { name: "-", score: 0 }];
-    }
+    // Uc kisiden az oyuncu varsa olanlar gosterilir, bos basamaklar "-" kalir.
+    const topThree = [0, 1, 2].map((i) => top?.[i] ?? EMPTY);
 
     return (
         <motion.div className={`w-full max-w-md mx-auto pt-12 ${isHome ? "p-6" : ""}`}

@@ -1,12 +1,15 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { getLeaderboard } from "../api"; 
+import { getLeaderboard } from "../api";
+import { LEADERBOARD_PAGE_SIZE } from "../constants";
 
-export function useLeaderboard(page = 1) {
+/** event yoksa genel tablo; event bir etkinlik slug'i ise o etkinligin tablosu. */
+export function useLeaderboard(page = 1, event = null, { enabled = true } = {}) {
   const query = useQuery({
-    queryKey: ["leaderboard", page],
-    queryFn: () => getLeaderboard(page),
+    queryKey: ["leaderboard", event ?? "genel", page],
+    queryFn: () => getLeaderboard(page, event),
+    enabled,
     keepPreviousData: true,
     staleTime: 1000 * 60 * 2,
   });
@@ -18,7 +21,7 @@ export function useLeaderboard(page = 1) {
       totalUsers: query.data.total_users,
       userRank: query.data.user_rank,
       entries: query.data.leaderboard.map((u, i) => ({
-        rank: (query.data.page - 1) * query.data.leaderboard.length + i + 1,
+        rank: (query.data.page - 1) * LEADERBOARD_PAGE_SIZE + i + 1,
         name: u.name,
         score: Math.round(u.score),
         isMe: u.is_me,
