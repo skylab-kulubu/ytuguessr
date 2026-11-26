@@ -1,5 +1,5 @@
 /* Etkinlik lider tablolari: backend GET /game/events ve /game/leaderboard?event=<slug>.
-   Durum istemcide saatten hesaplanir; sayfa gece yarisini acik gecirse de dogru kalir. */
+   Durum istemcide saatten hesaplanir; sayfalar useNow ile dakikada bir yeniden hesaplar. */
 
 const TZ = "Europe/Istanbul";
 const DAY = 24 * 60 * 60 * 1000;
@@ -9,9 +9,9 @@ const SHOW_DAYS = 7;
 export const GENERAL = "genel";
 
 export const STATUS_LABEL = {
-  upcoming: "Başlamadı",
-  active: "Sürüyor",
-  ended: "Bitti",
+  upcoming: "başlamadı",
+  active: "sürüyor",
+  ended: "bitti",
 };
 
 export function eventStatus(event, now = Date.now()) {

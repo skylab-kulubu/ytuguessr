@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLeaderboard } from "../../lib/hooks/useLeaderboard";
 import { useEvents } from "../../lib/hooks/useEvents";
+import { useNow } from "../../lib/hooks/useNow";
 import {
   GENERAL,
   STATUS_LABEL,
@@ -31,9 +32,10 @@ function LeaderboardView() {
   // Etkinlikler gelmeden hangi tablonun acilacagi bilinmez: suren etkinlik varsa o one cikar.
   // Etkinlik listesi alinamazsa genel tablo acilir.
   const events = useEvents();
+  const now = useNow();
   const all = events.data ?? [];
-  const tabs = boardEvents(all);
-  const running = tabs.find((e) => eventStatus(e) === "active") ?? null;
+  const tabs = boardEvents(all, now);
+  const running = tabs.find((e) => eventStatus(e, now) === "active") ?? null;
   const selectedEvent =
     param === GENERAL ? null : param ? all.find((e) => e.slug === param) ?? null : running;
   const slug = selectedEvent?.slug ?? null;
@@ -79,7 +81,7 @@ function LeaderboardView() {
   const { page: current, totalPages, totalUsers, userRank, entries } = formatted;
   const firstPage = current === 1;
   const rows = firstPage ? entries.slice(3) : entries;
-  const status = selectedEvent && eventStatus(selectedEvent);
+  const status = selectedEvent && eventStatus(selectedEvent, now);
   const emptyEvent = selectedEvent && firstPage && entries.length === 0;
 
   return (
@@ -112,16 +114,9 @@ function LeaderboardView() {
               <p className="mt-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-muted">
                 <span>{formatEventWindow(selectedEvent)}</span>
                 <span className="text-faint">·</span>
+                <span>{STATUS_LABEL[status]}</span>
+                <span className="text-faint">·</span>
                 <span>Yalnız bu aralıkta biten oyunlar sayılır.</span>
-                <span
-                  className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${
-                    status === "active"
-                      ? "border-accent/35 bg-accent/10 text-accent"
-                      : "border-hair text-muted"
-                  }`}
-                >
-                  {STATUS_LABEL[status]}
-                </span>
               </p>
             )}
             {!emptyEvent && (

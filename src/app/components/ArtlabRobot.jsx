@@ -1,6 +1,5 @@
 /* ARTLAB robotu. Cizim skylab-kulubu/artlab-site deposundan kopyalandi
-   (src/themes/2026: Sleep, Soon/Contact, Butterfly); renkler Guessr paletine cevrildi.
-   Yesil accent yalniz uyanik robotun gozunde: "etkinlik suruyor" gostergesi. */
+   (src/themes/2026: Sleep, Soon/Contact, Butterfly); renkler Guessr paletine cevrildi. */
 
 const LINE = "var(--color-muted)";
 const FACE = "var(--color-ink)";
@@ -73,9 +72,9 @@ export function SleepingRobot({ className }) {
   );
 }
 
-/** Uyanik robot basi. active: goz yesil (etkinlik suruyor). */
-export function RobotHead({ active = false, className }) {
-  const eye = active ? "var(--color-accent)" : FACE;
+/** Uyanik robot basi. */
+export function RobotHead({ className }) {
+  const eye = FACE;
   return (
     <svg width="92" height="52" viewBox="0 14 120 68" aria-hidden="true" className={className}>
       <g fill="none" stroke={LINE}>
