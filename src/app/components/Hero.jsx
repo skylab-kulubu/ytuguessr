@@ -6,6 +6,7 @@ import CampusMap from "./CampusMap";
 import StartGame from "./StartGame";
 import Stats from "./Stats";
 import Podium from "./Podium";
+import EventBanner from "./EventBanner";
 import { ORTABAHCE } from "@/lib/campusMap";
 
 export default function Hero() {
@@ -67,6 +68,7 @@ export default function Hero() {
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
             >
               <StartGame />
+              <EventBanner />
             </motion.div>
           </div>
         </div>

@@ -3,6 +3,14 @@
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLeaderboard } from "../../lib/hooks/useLeaderboard";
+import { useEvents } from "../../lib/hooks/useEvents";
+import {
+  GENERAL,
+  STATUS_LABEL,
+  boardEvents,
+  eventStatus,
+  formatEventWindow,
+} from "../../lib/events";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import CampusMap from "../components/CampusMap";
@@ -11,15 +19,41 @@ import { Reveal } from "../components/utils";
 import Podium from "../components/Podium";
 import Leaderboard from "./components/Leaderboard";
 import Pagination from "./components/Pagination";
+import BoardTabs from "./components/BoardTabs";
+import EventEmpty from "./components/EventEmpty";
 
 function LeaderboardView() {
   const router = useRouter();
   const params = useSearchParams();
   const page = Math.max(1, parseInt(params.get("page") || "1", 10) || 1);
+  const param = params.get("event");
 
-  const { isLoading, error, formatted } = useLeaderboard(page);
+  // Etkinlikler gelmeden hangi tablonun acilacagi bilinmez: suren etkinlik varsa o one cikar.
+  // Etkinlik listesi alinamazsa genel tablo acilir.
+  const events = useEvents();
+  const all = events.data ?? [];
+  const tabs = boardEvents(all);
+  const running = tabs.find((e) => eventStatus(e) === "active") ?? null;
+  const selectedEvent =
+    param === GENERAL ? null : param ? all.find((e) => e.slug === param) ?? null : running;
+  const slug = selectedEvent?.slug ?? null;
+  if (selectedEvent && !tabs.includes(selectedEvent)) tabs.push(selectedEvent);
 
-  if (isLoading) return <LoadingScreen />;
+  const { isLoading, error, formatted } = useLeaderboard(page, slug, {
+    enabled: !events.isLoading,
+  });
+
+  // Suren etkinlik varken genel tabloya acikca "genel" ile gidilir.
+  const hrefFor = (s, p = 1) => {
+    const q = new URLSearchParams();
+    if (s) q.set("event", s);
+    else if (running) q.set("event", GENERAL);
+    if (p > 1) q.set("page", String(p));
+    const qs = q.toString();
+    return qs ? `/leaderboard?${qs}` : "/leaderboard";
+  };
+
+  if (events.isLoading || isLoading) return <LoadingScreen />;
 
   if (error) {
     return (
@@ -45,6 +79,8 @@ function LeaderboardView() {
   const { page: current, totalPages, totalUsers, userRank, entries } = formatted;
   const firstPage = current === 1;
   const rows = firstPage ? entries.slice(3) : entries;
+  const status = selectedEvent && eventStatus(selectedEvent);
+  const emptyEvent = selectedEvent && firstPage && entries.length === 0;
 
   return (
     <div className="flex min-h-[100dvh] flex-col">
@@ -67,33 +103,68 @@ function LeaderboardView() {
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
               Lider tablosu
             </h1>
-            <p className="mt-4 text-muted">
-              {userRank ? (
-                <>
-                  Şu anda <span className="tnum text-ink">{userRank}.</span>{" "}
-                  sıradasınız.
-                </>
-              ) : (
-                "Henüz bir sıralamanız yok."
-              )}
-            </p>
+            {tabs.length > 0 && (
+              <div className="mt-8">
+                <BoardTabs events={tabs} selected={slug} hrefFor={hrefFor} />
+              </div>
+            )}
+            {selectedEvent && (
+              <p className="mt-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-muted">
+                <span>{formatEventWindow(selectedEvent)}</span>
+                <span className="text-faint">·</span>
+                <span>Yalnız bu aralıkta biten oyunlar sayılır.</span>
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${
+                    status === "active"
+                      ? "border-accent/35 bg-accent/10 text-accent"
+                      : "border-hair text-muted"
+                  }`}
+                >
+                  {STATUS_LABEL[status]}
+                </span>
+              </p>
+            )}
+            {!emptyEvent && (
+              <p className="mt-4 text-muted">
+                {userRank ? (
+                  <>
+                    {selectedEvent ? "Bu tabloda" : "Şu anda"}{" "}
+                    <span className="tnum text-ink">{userRank}.</span> sıradasınız.
+                  </>
+                ) : selectedEvent ? (
+                  "Bu tabloda henüz sıralamanız yok."
+                ) : (
+                  "Henüz bir sıralamanız yok."
+                )}
+              </p>
+            )}
           </Reveal>
 
-          {firstPage && (
-            <div className="mt-16">
-              <Podium />
+          {emptyEvent ? (
+            <div className="mt-12">
+              <EventEmpty event={selectedEvent} status={status} />
             </div>
-          )}
+          ) : (
+            <>
+              {firstPage && (
+                <div className="mt-16">
+                  <Podium event={slug} />
+                </div>
+              )}
 
-          <div className="mt-12">
-            <Leaderboard entries={rows} current={current} />
-          </div>
+              {(rows.length > 0 || !firstPage) && (
+                <div className="mt-12">
+                  <Leaderboard entries={rows} current={current} />
+                </div>
+              )}
+            </>
+          )}
 
           <Pagination
             current={current}
             totalPages={totalPages}
             totalUsers={totalUsers}
-            onPageChange={(p) => router.push(`/leaderboard?page=${p}`)}
+            onPageChange={(p) => router.push(hrefFor(slug, p))}
           />
         </div>
       </main>
