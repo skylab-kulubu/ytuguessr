@@ -13,7 +13,9 @@ name: Frontend
 #   Off: gh variable delete DEPLOY_PAUSED -R skylab-kulubu/ytuguessr
 #   After "off", the last paused commit goes live with a new push or by re-running its run (Actions -> Frontend ->
 #   the run -> Re-run all jobs).
-# Manual run (Actions -> Frontend -> Run workflow, branch frontend): the same as a push.
+# Deploy again by hand: re-run a frontend run (Actions -> Frontend -> the run -> Re-run all jobs); it behaves like the
+#   push. workflow_dispatch stays for later, but GitHub offers "Run workflow" only for workflows on the default branch
+#   (main), and this file lives on frontend.
 # The backend has its own workflow (GHCR on the backend branch, secret DOKPLOY_DEPLOY_HOOK, environment
 # production). This one uses DOKPLOY_FRONTEND_DEPLOY_HOOK and the environment guessr-frontend, so the backend's
 # gate, which reads the production environment's deployments, never sees a frontend commit.
@@ -56,7 +58,7 @@ jobs:
           NEXT_TELEMETRY_DISABLED: 1
         run: npm run build
 
-  # Decides whether this run goes live: deploy=true on a frontend push or a manual run of frontend, once the
+  # Decides whether this run goes live: deploy=true on a frontend push (or its re-run), once the
   # Dokploy deploy hook is set and deploys are not paused. production=true when :production may move.
   gate:
     runs-on: ubuntu-latest
