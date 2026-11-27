@@ -1,6 +1,7 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
+import L from "leaflet";
 import { memo, useEffect, useRef, useState } from "react";
 import { MapContainer, Marker, useMap, useMapEvents } from "react-leaflet";
 import { useSwipeable } from "react-swipeable";
@@ -49,6 +50,23 @@ function SizeSync() {
   return null;
 }
 
+/* Tum kampusu sigdiran gorunumde binalar cok kucuk kaliyordu; harita bunun
+   bir kademe yakinindan acilir. Okumada 1.0x hala tum kampus oldugu icin
+   "Tum kampus" dugmesi bastan gorunur. */
+const START_ZOOM = 0.75;
+
+function StartZoom() {
+  const map = useMap();
+
+  useEffect(() => {
+    /* Mutlak hedef: StrictMode efekti iki kez calistirsa da ayni zoom'a gider. */
+    const fit = map.getBoundsZoom(CAMPUS_BOUNDS, false, L.point(FIT.padding[0] * 2, FIT.padding[1] * 2));
+    map.setView(L.latLngBounds(CAMPUS_BOUNDS).getCenter(), fit + START_ZOOM, { animate: false });
+  }, [map]);
+
+  return null;
+}
+
 /* memo: hover ve her saniyelik sure guncellemesi haritaya inmesin. */
 const GuessCanvas = memo(function GuessCanvas({ marker, onPick, resizable = false }) {
   const [options] = useState(mapOptions);
@@ -58,6 +76,7 @@ const GuessCanvas = memo(function GuessCanvas({ marker, onPick, resizable = fals
       <CampusLayers />
       <ClickCapture onPick={onPick} />
       <ZoomControl bounds={CAMPUS_BOUNDS} padding={FIT.padding} />
+      <StartZoom />
       {resizable && <SizeSync />}
       {/* key: her yeni isarette pin animasyonu bastan oynasin */}
       {marker && <Marker key={marker.join()} position={marker} icon={guessPin} keyboard={false} />}
