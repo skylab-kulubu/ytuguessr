@@ -1,17 +1,21 @@
-import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { Providers } from "../lib/providers";
 import "./globals.css";
 
-const display = Space_Grotesk({
-  subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600", "700"],
+/* Fontlar depoda: next/font/google build sirasinda Google Fonts'a gidiyordu ve Google ara sira
+   uzantisiz /l/font?kit= adresi donunce Next'in yukleyicisi CI'da build'i dusuruyordu
+   (vercel/next.js#99114). Dosyalar google/fonts'taki degisken fontlarin Google'in latin +
+   latin-ext araliklarina indirgenmis halleri; OFL lisanslari yanlarinda. */
+const display = localFont({
+  src: "./fonts/space-grotesk.woff2",
+  weight: "300 700",
   variable: "--font-space-grotesk",
   display: "swap",
 });
 
-const mono = JetBrains_Mono({
-  subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "700"],
+const mono = localFont({
+  src: "./fonts/jetbrains-mono.woff2",
+  weight: "100 800",
   variable: "--font-jetbrains-mono",
   display: "swap",
 });
