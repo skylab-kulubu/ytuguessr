@@ -23,6 +23,7 @@ import Leaderboard from "./components/Leaderboard";
 import Pagination from "./components/Pagination";
 import BoardTabs from "./components/BoardTabs";
 import EventEmpty from "./components/EventEmpty";
+import { PeekingRobot } from "../components/ArtlabRobot";
 
 function BoardLoader() {
   return (
@@ -82,7 +83,8 @@ function Board({ event, data, now, onPageChange }) {
           )}
 
           {(rows.length > 0 || !firstPage) && (
-            <div className="mt-12">
+            <div className={event ? "relative mt-20" : "mt-12"}>
+              {event && <PeekingRobot className="absolute bottom-full left-3 sm:left-6" />}
               <Leaderboard entries={rows} current={current} />
             </div>
           )}
