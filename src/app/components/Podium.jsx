@@ -2,6 +2,7 @@
 
 import { useLeaderboard } from "../../lib/hooks/useLeaderboard";
 import { useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { CountUp } from "./utils";
@@ -169,10 +170,10 @@ export default function Podium({ event = null }) {
                     animate={hasEntered ? { opacity: 1 } : undefined}
                     transition={{ duration: 0.6, ease: "easeOut", delay: 4.0 }}
                 >
-                    <a href="/leaderboard" className="mx-8 rounded-2xl p-3 bg-white/5 backdrop-blur border border-hair shadow-lg flex items-center justify-center gap-3 text-white font-semibold hover:bg-white/10 transition-all duration-200 group">
+                    <Link href="/leaderboard" className="mx-8 rounded-2xl p-3 bg-white/5 backdrop-blur border border-hair shadow-lg flex items-center justify-center gap-3 text-white font-semibold hover:bg-white/10 transition-all duration-200 group">
                         Lider Tablosunu İncele
                         <ArrowRight className="w-5 h-5 text-muted group-hover:text-ink transition-colors" />
-                    </a>
+                    </Link>
                 </motion.div>
             )}
         </motion.div>

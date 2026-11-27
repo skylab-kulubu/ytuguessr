@@ -39,7 +39,7 @@ export default function Home() {
       {/* Icerik her zaman render edilir: SSR'da bos sayfa donmesin. */}
       <div className="min-h-[100dvh] bg-canvas flex flex-col">
         <Header />
-        <main className="flex flex-col items-center bg-canvas text-white">
+        <main className="page-enter flex flex-col items-center bg-canvas text-white">
           <Hero />
         </main>
         <Footer />

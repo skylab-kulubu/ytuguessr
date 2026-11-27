@@ -457,6 +457,13 @@
     background-size: 40% 100%;
     animation: loader-sweep 1.3s var(--ease-out-expo) infinite;
   }
+
+  /* Sayfa gecisi: Header disarida kalir, yalniz icerik zeminden belirir.
+     Yalniz opacity: transform icerideki fixed ogeleri (panorama, tahmin
+     paneli) sayfaya baglardi. fill-mode yok; bitince iz birakmasin. */
+  .page-enter {
+    animation: page-enter 0.5s var(--ease-out-expo);
+  }
 }
 
 @layer utilities {
@@ -771,6 +778,11 @@ html .leaflet-container {
     background-position: 160% 0;
   }
 }
+@keyframes page-enter {
+  from {
+    opacity: 0;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -788,6 +800,7 @@ html .leaflet-container {
     opacity: 0;
   }
   .loader-line,
+  .page-enter,
   .drag-hint,
   .cm-pin img,
   .cm-distance span {

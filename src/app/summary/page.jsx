@@ -31,7 +31,7 @@ export default function SummaryPage() {
     return (
       <div className="flex min-h-[100dvh] flex-col">
         <Header />
-        <main className="flex flex-1 items-center justify-center px-5">
+        <main className="page-enter flex flex-1 items-center justify-center px-5">
           <div className="panel w-full max-w-sm px-6 py-8 text-center">
             <p className="font-medium">Özet yüklenemedi.</p>
             <p className="mt-1 text-sm text-muted">{error.message}</p>
@@ -54,7 +54,7 @@ export default function SummaryPage() {
     <div className="flex min-h-[100dvh] flex-col">
       <Header />
 
-      <main className="relative flex-1 overflow-hidden">
+      <main className="page-enter relative flex-1 overflow-hidden">
         <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[480px] overflow-hidden">
           <CampusMap
             ambient

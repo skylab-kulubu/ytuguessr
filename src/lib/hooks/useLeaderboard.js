@@ -10,7 +10,6 @@ export function useLeaderboard(page = 1, event = null, { enabled = true } = {}) 
     queryKey: ["leaderboard", event ?? "genel", page],
     queryFn: () => getLeaderboard(page, event),
     enabled,
-    keepPreviousData: true,
     staleTime: 1000 * 60 * 2,
   });
 

@@ -94,7 +94,7 @@ export default function GamePage() {
   const guessStatus = guessMut.isPending ? "pending" : guessMut.isError ? "error" : "idle";
 
   return (
-    <div className="relative h-[100dvh] w-full overflow-hidden bg-canvas text-ink">
+    <div className="page-enter relative h-[100dvh] w-full overflow-hidden bg-canvas text-ink">
       {question?.image_url && !status.game_over && (
         <PanoramaViewer
           key={question.image_url}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useTransform, animate, useReducedMotion } from "framer-motion";
 
 {/* ---- Sayı Artma Animasyonu ---- */}
@@ -53,6 +53,34 @@ export function Reveal({ children, delay = 0, y = 20, className = "" }) {
             transition={{ duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] }}
         >
             {children}
+        </motion.div>
+    );
+}
+
+{/* ---- İçeriği Değiştikçe Yüksekliği Kayarak Değişen Kutu ---- */}
+export function SmoothHeight({ children }) {
+    const inner = useRef(null);
+    const [height, setHeight] = useState("auto");
+    const reduce = useReducedMotion();
+
+    useEffect(() => {
+        const observer = new ResizeObserver(([entry]) => setHeight(entry.contentRect.height));
+        observer.observe(inner.current);
+        return () => observer.disconnect();
+    }, []);
+
+    return (
+        <motion.div
+            className="overflow-hidden"
+            initial={false}
+            animate={{ height }}
+            /* Sitedeki expo-out yuzlerce piksellik farkta ilk karede sicriyor; cubic daha yumusak basliyor. */
+            transition={reduce ? { duration: 0 } : { duration: 0.55, ease: [0.33, 1, 0.68, 1] }}
+        >
+            {/* flow-root: cocuklarin marjini disari tasmasin, olculen yukseklige dahil olsun. */}
+            <div ref={inner} className="flow-root">
+                {children}
+            </div>
         </motion.div>
     );
 }
