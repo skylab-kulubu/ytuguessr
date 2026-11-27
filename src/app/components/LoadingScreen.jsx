@@ -1,19 +1,20 @@
 import React from "react";
-import loadingAnimation from "../../../public/lottie/loading.json";
-import Lottie from "lottie-react";
 import { TriangleAlert } from 'lucide-react';
+import Header from "./Header";
+import SkylabLoader from "./SkylabLoader";
 
 {/* ---- Ana Yükleniyor Ekranı ---- */}
+/* Header icerikli sayfadakiyle ayni yerde durur: veri gelince yalniz icerik degisir. */
 const LoadingScreen = () => {
   return (
-    <div className="min-h-screen bg-canvas text-white">
-      <div className="flex justify-center items-center pt-24 h-[calc(100vh-6rem)]">
-        <Lottie
-          animationData={loadingAnimation}
-          style={{ width: 96, height: 96 }}
-          loop={true}
-        />
-      </div>
+    <div className="flex min-h-[100dvh] flex-col">
+      <Header />
+      <main className="page-enter grid flex-1 place-items-center">
+        <div role="status">
+          <SkylabLoader size={72} />
+          <span className="sr-only">Yükleniyor</span>
+        </div>
+      </main>
     </div>
   );
 };
@@ -22,7 +23,7 @@ const LoadingScreen = () => {
 const GameLoadingScreen = ({ error }) => {
   if (error) {
     return (
-      <div className="grid min-h-[100dvh] place-items-center bg-canvas px-6 text-ink">
+      <div className="page-enter grid min-h-[100dvh] place-items-center bg-canvas px-6 text-ink">
         <div className="flex max-w-sm flex-col items-center text-center">
           <TriangleAlert className="text-danger" size={28} strokeWidth={1.75} />
           <p className="mt-4 font-medium">Oyun yüklenemedi</p>
@@ -39,10 +40,10 @@ const GameLoadingScreen = ({ error }) => {
   }
 
   return (
-    <div className="grid min-h-[100dvh] place-items-center bg-canvas">
-      <div className="flex flex-col items-center gap-3">
+    <div className="page-enter grid min-h-[100dvh] place-items-center bg-canvas">
+      <div role="status" className="flex flex-col items-center gap-5">
+        <SkylabLoader size={64} />
         <span className="hud-label">Oyun hazırlanıyor</span>
-        <span aria-hidden="true" className="loader-line" />
       </div>
     </div>
   );
