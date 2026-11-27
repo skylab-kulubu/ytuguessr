@@ -42,7 +42,7 @@ export default function Header() {
 
   return (
     /* Dis katman tam genislikte ama tiklamayi gecirir: yalniz pill tiklanabilir. */
-    <header className="pointer-events-none fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-4 sm:pt-4">
+    <header data-site-header className="pointer-events-none fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-4 sm:pt-4">
       <div className="pointer-events-auto mx-auto flex h-13 w-full max-w-350 items-center justify-between gap-4 rounded-full border border-hair bg-[#151b18]/80 pr-1.5 pl-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_10px_40px_-15px_rgba(0,0,0,.6)] backdrop-blur-md sm:pl-6">
         <Link href="/" className="flex items-center" aria-label="YTUGuessr ana sayfa">
           <img src="/logo.svg" alt="YTUGuessr" className="h-[18px] sm:h-5" />

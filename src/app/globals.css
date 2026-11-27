@@ -57,6 +57,13 @@
     -webkit-text-size-adjust: 100%;
   }
 
+  /* Klasik kaydirma cubugunda (Windows) sayfa kisayken cubuk yoktur; veri gelip sayfa uzayinca
+     belirir ve sabit header dahil her seyi yana kaydirir. Header'li sayfalar cubugun yerini bastan
+     ayirir; oyun ekrani tam genislikte kalsin diye yalniz onlar. */
+  html:has([data-site-header]) {
+    scrollbar-gutter: stable;
+  }
+
   body {
     margin: 0;
     background: var(--color-canvas);
