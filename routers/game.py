@@ -61,6 +61,9 @@ def start_game(data: StartGameRequest, request: Request, db: Session = Depends(g
             raise HTTPException(status_code=400, detail="Okul maili gereklidir.")
 
         email = data.school_mail.lower()
+
+        if email not in settings.VALID_EMAILS:
+            raise HTTPException(status_code=400, detail="Sadece geçerli okul mailleri ile giriş yapılabilir.")
         
         user = User(
             email=email,
